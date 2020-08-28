@@ -84,12 +84,13 @@ if __name__ == "__main__":
     
     assert len(sys.argv) == 3, "Input the learning method as the second argument"
     env_name = sys.argv[1].lower()
-    method = sys.argv[2]
+    method = sys.argv[2].upper()
     assert method in methods, "Method should be one of {}".format(methods)
     
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
-    checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
-
+    #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
+    checkpoint_path = "./ray_results/{}/{}/checkpoint_4210/checkpoint-4210".format(env_name,method)
+    
     if method == "RDQN":
         Trainer = DQNTrainer
     elif method == "ADQN":
@@ -158,17 +159,19 @@ if __name__ == "__main__":
     while not done:
         
         #imsave("./"+str(iteration)+".png",np.reshape(observation,(30,50))) 
-        #env.render()
+        env.render()
         if env.agent_selection == policy_agent:
             observation = env.observe(policy_agent)
             action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
         else:
             action = env.action_spaces[policy_agent].sample() #same action space for all agents
+        print('Agent: {}, action: {}'.format(env.agent_selection,action))
         env.step(action, observe=False)
-        print('reward: ',env.rewards, ', done: ',env.dones)
-        #rewards.append(reward)
+        print('reward: {}, done: {}'.format(env.rewards, env.dones))
+        reward = env.rewards[policy_agent]
+        rewards.append(reward)
         done = any(env.dones.values())
-        total_reward += env.rewards[policy_agent]
+        total_reward += reward
         iteration += 1
 
     #env.close()

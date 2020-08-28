@@ -4,6 +4,7 @@ astor==0.8.0
 async-timeout==3.0.1
 atari-py==0.2.6
 attrs==19.3.0
+autorom
 beautifulsoup4==4.8.2
 box2d-py==2.3.8
 certifi==2019.9.11
@@ -38,7 +39,7 @@ magent
 Markdown==3.1.1
 matplotlib==3.1.1
 more-itertools==7.2.0
-#multi_agent_ale_py
+multi_agent_ale_py
 multidict==4.7.4
 networkx==2.3
 numpy>=1.18.0
