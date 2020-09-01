@@ -15,7 +15,7 @@ from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0
-from supersuit.aec_wrappers import clip_reward, sticky_actions, resize, color_reduction, frame_stack
+from supersuit.aec_wrappers import clip_reward, sticky_actions, resize, frame_skip, frame_stack
 
 #from cyclic_reward_wrapper import cyclic_reward_wrapper
 
@@ -88,11 +88,12 @@ if __name__ == "__main__":
         game_env = surround_v0
 
     def env_creator(args):
-        env = game_env.env()
+        env = game_env.env(obs_type='grayscale_image')
         env = clip_reward(env, lower_bound=-1, upper_bound=1)
         env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
-        env = color_reduction(env, mode='full')
+        #env = color_reduction(env, mode='full')
+        env = frame_skip(env, 4)
         env = frame_stack(env, 4)
         return env
     
@@ -162,14 +163,14 @@ if __name__ == "__main__":
         
                 # Enviroment specific
                 "env": env_name,
-                "double_q": False,
-                "dueling": False,
+                "double_q": True,
+                "dueling": True,
                 "num_atoms": 1,
                 "noisy": False,
                 "n_step": 3,
-                "lr": 0.0001,
+                "lr": 0.0000625,
                 "adam_epsilon": 0.00015,
-                "buffer_size": int(5e5),
+                "buffer_size": int(1e6),
                 "exploration_config": {
                     "final_epsilon": 0.01,
                     "epsilon_timesteps": 200000,
@@ -187,7 +188,9 @@ if __name__ == "__main__":
                 "train_batch_size": 512,
                 "target_network_update_freq": 50000,
                 "timesteps_per_iteration": 25000,
-                
+                "learning_starts": 80000,
+                "compress_observations": False, 
+                "gamma": 0.99,
                 # Method specific
                 "multiagent": {
                     "policies": policies,

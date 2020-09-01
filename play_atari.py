@@ -18,7 +18,7 @@ from ray.rllib.env import PettingZooEnv
 
 from pettingzoo.utils import observation_saver
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0
-from supersuit.aec_wrappers import clip_reward, sticky_actions, resize, color_reduction, frame_stack
+from supersuit.aec_wrappers import clip_reward, sticky_actions, resize, frame_skip, frame_stack
 
 from numpy import float32
 
@@ -82,14 +82,15 @@ if __name__ == "__main__":
     
     methods = ["ADQN", "PPO", "RDQN"]
     
-    assert len(sys.argv) == 3, "Input the learning method as the second argument"
+    assert len(sys.argv) == 4, "Input the learning method as the second argument"
     env_name = sys.argv[1].lower()
     method = sys.argv[2].upper()
+    checkpoint = sys.argv[3] 
     assert method in methods, "Method should be one of {}".format(methods)
     
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
-    checkpoint_path = "./ray_results/{}/{}/checkpoint_4210/checkpoint-4210".format(env_name,method)
+    checkpoint_path = "./ray_results/{}/{}/v2/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
     
     if method == "RDQN":
         Trainer = DQNTrainer
@@ -108,11 +109,12 @@ if __name__ == "__main__":
         game_env = surround_v0
 
     def env_creator(args):
-        env = game_env.env()
+        env = game_env.env(obs_type='grayscale_image')
         env = clip_reward(env, lower_bound=-1, upper_bound=1)
-        env = sticky_actions(env, repeat_action_probability=0.25)
+        #env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
-        env = color_reduction(env, mode='full')
+        #env = color_reduction(env, mode='full')
+        #env = frame_skip(env, 4)
         env = frame_stack(env, 4)
         return env
     
@@ -159,7 +161,7 @@ if __name__ == "__main__":
     while not done:
         
         #imsave("./"+str(iteration)+".png",np.reshape(observation,(30,50))) 
-        env.render()
+        #env.render()
         if env.agent_selection == policy_agent:
             observation = env.observe(policy_agent)
             action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
