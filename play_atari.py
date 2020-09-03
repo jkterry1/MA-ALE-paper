@@ -18,7 +18,8 @@ from ray.rllib.env import PettingZooEnv
 
 from pettingzoo.utils import observation_saver
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0
-from supersuit.aec_wrappers import clip_reward, sticky_actions, resize, frame_skip, frame_stack
+from supersuit.aec_wrappers import clip_reward, sticky_actions, resize
+from supersuit.aec_wrappers import frame_skip, frame_stack, agent_indicator
 
 from numpy import float32
 
@@ -90,7 +91,7 @@ if __name__ == "__main__":
     
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
-    checkpoint_path = "./ray_results/{}/{}/v2/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
+    checkpoint_path = "./ray_results/{}/{}/v3/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
     
     if method == "RDQN":
         Trainer = DQNTrainer
@@ -111,9 +112,10 @@ if __name__ == "__main__":
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
         env = clip_reward(env, lower_bound=-1, upper_bound=1)
-        #env = sticky_actions(env, repeat_action_probability=0.25)
+        env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
         #env = color_reduction(env, mode='full')
+        env = agent_indicator(env, type_only=False)
         #env = frame_skip(env, 4)
         env = frame_stack(env, 4)
         return env

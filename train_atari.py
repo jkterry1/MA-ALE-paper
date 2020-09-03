@@ -15,7 +15,8 @@ from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0
-from supersuit.aec_wrappers import clip_reward, sticky_actions, resize, frame_skip, frame_stack
+from supersuit.aec_wrappers import clip_reward, sticky_actions, resize
+from supersuit.aec_wrappers import frame_skip, frame_stack, agent_indicator
 
 #from cyclic_reward_wrapper import cyclic_reward_wrapper
 
@@ -93,7 +94,8 @@ if __name__ == "__main__":
         env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
         #env = color_reduction(env, mode='full')
-        env = frame_skip(env, 4)
+        env = agent_indicator(env, type_only=False)
+        #env = frame_skip(env, 4)
         env = frame_stack(env, 4)
         return env
     
@@ -170,7 +172,7 @@ if __name__ == "__main__":
                 "n_step": 3,
                 "lr": 0.0000625,
                 "adam_epsilon": 0.00015,
-                "buffer_size": int(1e6),
+                "buffer_size": int(1e5),
                 "exploration_config": {
                     "final_epsilon": 0.01,
                     "epsilon_timesteps": 200000,
