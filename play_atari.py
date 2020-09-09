@@ -121,7 +121,7 @@ if __name__ == "__main__":
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
         env = clip_reward(env, lower_bound=-1, upper_bound=1)
-        env = sticky_actions(env, repeat_action_probability=0.25)
+        #env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
         #env = color_reduction(env, mode='full')
         #env = frame_skip(env, 4)
