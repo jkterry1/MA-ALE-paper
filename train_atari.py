@@ -14,9 +14,9 @@ from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
-from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0
+from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
 from supersuit.aec_wrappers import clip_reward, sticky_actions, resize
-from supersuit.aec_wrappers import frame_skip, frame_stack, agent_indicator
+from supersuit.aec_wrappers import frame_skip, frame_stack, agent_indicator, flatten
 
 #from cyclic_reward_wrapper import cyclic_reward_wrapper
 
@@ -31,28 +31,32 @@ class AtariModel(TFModelV2):
         # Convolutions on the frames on the screen
         layer1 = tf.keras.layers.Conv2D(
                 32,
-                8,
-                strides=4,
+                [8, 8],
+                strides=(4, 4),
                 activation="relu",
                 data_format='channels_last')(inputs)
         layer2 = tf.keras.layers.Conv2D(
                 64,
-                4,
-                strides=2,
+                [4, 4],
+                strides=(2, 2),
                 activation="relu",
                 data_format='channels_last')(layer1)
         layer3 = tf.keras.layers.Conv2D(
                 64,
-                3,
-                strides=1,
+                [3, 3],
+                strides=(1, 1),
                 activation="relu",
                 data_format='channels_last')(layer2)
         layer4 = tf.keras.layers.Flatten()(layer3)
-        layer5 = tf.keras.layers.Dense(512, activation="relu")(layer4)
+        layer5 = tf.keras.layers.Dense(
+                512,
+                activation="relu",
+                kernel_initializer=normc_initializer(1.0))(layer4)
         action = tf.keras.layers.Dense(
                 num_outputs,
                 activation="linear",
-                name="actions")(layer5)
+                name="actions",
+                kernel_initializer=normc_initializer(0.01))(layer5)
         value_out = tf.keras.layers.Dense(
                 1,
                 activation=None,
@@ -67,6 +71,22 @@ class AtariModel(TFModelV2):
     
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
+
+
+class MLPModelV2(TFModelV2):
+    def __init__(self, obs_space, action_space, num_outputs, model_config,
+                 name="my_model"):
+        super().__init__(obs_space, action_space, num_outputs, model_config,
+                         name)
+        # Simplified to one layer.
+        inputs = tf.keras.layers.Input(obs_space.shape, dtype=obs_space.dtype)
+        output = tf.keras.layers.Dense(num_outputs, activation=None)
+        self.base_model = tf.keras.models.Sequential([inputs, output])
+        self.register_variables(self.base_model.variables)
+
+    def forward(self, input_dict, state, seq_lens):
+        return self.base_model(input_dict["obs"]), []
+
 
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
@@ -87,16 +107,21 @@ if __name__ == "__main__":
         game_env = joust_v0
     elif env_name=='surround':
         game_env = surround_v0
+    elif env_name=='space_invaders':
+        game_env = space_invaders_v0
+    else:
+        raise TypeError("{} environment not supported!".format(game_env))
 
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
         env = clip_reward(env, lower_bound=-1, upper_bound=1)
-        env = sticky_actions(env, repeat_action_probability=0.25)
+        #env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
         #env = color_reduction(env, mode='full')
-        env = agent_indicator(env, type_only=False)
         #env = frame_skip(env, 4)
         env = frame_stack(env, 4)
+        env = agent_indicator(env, type_only=False)
+        #env = flatten(env)
         return env
     
     register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
@@ -105,6 +130,7 @@ if __name__ == "__main__":
     obs_space = test_env.observation_space
     act_space = test_env.action_space
     
+    #ModelCatalog.register_custom_model("AtariModel", MLPModelV2)
     ModelCatalog.register_custom_model("AtariModel", AtariModel)
     def gen_policy(i):
         config = {
@@ -169,10 +195,12 @@ if __name__ == "__main__":
                 "dueling": True,
                 "num_atoms": 1,
                 "noisy": False,
-                "n_step": 3,
+                "prioritized_replay": False,
+                "n_step": 1,
+                #"lr": 0.0001,
                 "lr": 0.0000625,
                 "adam_epsilon": 0.00015,
-                "buffer_size": int(1e5),
+                "buffer_size": int(1e6),
                 "exploration_config": {
                     "final_epsilon": 0.01,
                     "epsilon_timesteps": 200000,
@@ -181,17 +209,17 @@ if __name__ == "__main__":
                 "final_prioritized_replay_beta": 1.0,
                 "prioritized_replay_beta_annealing_timesteps": 2000000,
 
-                "num_gpus": 1,
+                "num_gpus": 2,
                 
                 "log_level": "INFO",
                 "num_workers": 8,
                 "num_envs_per_worker": 8,
-                "rollout_fragment_length": 20,
-                "train_batch_size": 512,
-                "target_network_update_freq": 50000,
-                "timesteps_per_iteration": 25000,
-                "learning_starts": 80000,
-                "compress_observations": False, 
+                "rollout_fragment_length": 4,
+                "train_batch_size": 32,
+                "target_network_update_freq": 8000,
+                "timesteps_per_iteration": 10000,
+                "learning_starts": 20000,
+                "compress_observations": True, 
                 "gamma": 0.99,
                 # Method specific
                 "multiagent": {

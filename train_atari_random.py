@@ -58,8 +58,7 @@ class AtariModel(TFModelV2):
         value_out = tf.keras.layers.Dense(
                 1,
                 activation=None,
-                name="value_out",
-                kernel_initializer=normc_initializer(0.01))(layer5)
+                name="value_out")(layer5)
         self.base_model = tf.keras.Model(inputs, [action, value_out])
         self.register_variables(self.base_model.variables)
 
@@ -97,9 +96,9 @@ if __name__ == "__main__":
         env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
         #env = color_reduction(env, mode='full')
-        env = agent_indicator(env, type_only=False)
         #env = frame_skip(env, 4)
         env = frame_stack(env, 4)
+        env = agent_indicator(env, type_only=False)
         return env
     
     register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))

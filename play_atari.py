@@ -17,7 +17,7 @@ from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
 
 from pettingzoo.utils import observation_saver
-from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0
+from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
 from supersuit.aec_wrappers import clip_reward, sticky_actions, resize
 from supersuit.aec_wrappers import frame_skip, frame_stack, agent_indicator
 
@@ -40,28 +40,33 @@ class AtariModel(TFModelV2):
         # Convolutions on the frames on the screen
         layer1 = tf.keras.layers.Conv2D(
                 32,
-                8,
-                strides=4,
+                [8, 8],
+                strides=(4, 4),
                 activation="relu",
                 data_format='channels_last')(inputs)
         layer2 = tf.keras.layers.Conv2D(
                 64,
-                4,
-                strides=2,
+                [4, 4],
+                strides=(2, 2),
                 activation="relu",
                 data_format='channels_last')(layer1)
         layer3 = tf.keras.layers.Conv2D(
                 64,
-                3,
-                strides=1,
+                [3, 3],
+                strides=(1, 1),
                 activation="relu",
                 data_format='channels_last')(layer2)
-        layer4 = tf.keras.layers.Flatten()(layer3)
-        layer5 = tf.keras.layers.Dense(512, activation="relu")(layer4)
+        layer4 = tf.keras.layers.Flatten(
+                data_format='channels_last')(layer3)
+        layer5 = tf.keras.layers.Dense(
+                512,
+                activation="relu",
+                kernel_initializer=normc_initializer(1.0))(layer4)
         action = tf.keras.layers.Dense(
                 num_outputs,
                 activation="linear",
-                name="actions")(layer5)
+                name="actions",
+                kernel_initializer=normc_initializer(0.01))(layer5)
         value_out = tf.keras.layers.Dense(
                 1,
                 activation=None,
@@ -91,7 +96,7 @@ if __name__ == "__main__":
     
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
-    checkpoint_path = "./ray_results/{}/{}/v3/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
+    checkpoint_path = "./ray_results/{}/{}/v1/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
     
     if method == "RDQN":
         Trainer = DQNTrainer
@@ -108,6 +113,10 @@ if __name__ == "__main__":
         game_env = joust_v0
     elif env_name=='surround':
         game_env = surround_v0
+    elif env_name=='space_invaders':
+        game_env = space_invaders_v0
+    else:
+        raise TypeError('{} environment is not supported!'.format(env_name))
 
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
@@ -115,9 +124,9 @@ if __name__ == "__main__":
         env = sticky_actions(env, repeat_action_probability=0.25)
         env = resize(env, 84, 84)
         #env = color_reduction(env, mode='full')
-        env = agent_indicator(env, type_only=False)
         #env = frame_skip(env, 4)
         env = frame_stack(env, 4)
+        env = agent_indicator(env, type_only=False)
         return env
     
     register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
