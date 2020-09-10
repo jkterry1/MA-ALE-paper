@@ -15,8 +15,8 @@ from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
-from supersuit.aec_wrappers import clip_reward, sticky_actions, resize
-from supersuit.aec_wrappers import frame_skip, frame_stack, agent_indicator, flatten
+from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
+from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0, flatten_v0
 
 #from cyclic_reward_wrapper import cyclic_reward_wrapper
 
@@ -73,21 +73,6 @@ class AtariModel(TFModelV2):
         return tf.reshape(self._value_out, [-1])
 
 
-class MLPModelV2(TFModelV2):
-    def __init__(self, obs_space, action_space, num_outputs, model_config,
-                 name="my_model"):
-        super().__init__(obs_space, action_space, num_outputs, model_config,
-                         name)
-        # Simplified to one layer.
-        inputs = tf.keras.layers.Input(obs_space.shape, dtype=obs_space.dtype)
-        output = tf.keras.layers.Dense(num_outputs, activation=None)
-        self.base_model = tf.keras.models.Sequential([inputs, output])
-        self.register_variables(self.base_model.variables)
-
-    def forward(self, input_dict, state, seq_lens):
-        return self.base_model(input_dict["obs"]), []
-
-
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
     # ADQN - Apex DQN
@@ -130,7 +115,6 @@ if __name__ == "__main__":
     obs_space = test_env.observation_space
     act_space = test_env.action_space
     
-    #ModelCatalog.register_custom_model("AtariModel", MLPModelV2)
     ModelCatalog.register_custom_model("AtariModel", AtariModel)
     def gen_policy(i):
         config = {
@@ -209,7 +193,7 @@ if __name__ == "__main__":
                 "final_prioritized_replay_beta": 1.0,
                 "prioritized_replay_beta_annealing_timesteps": 2000000,
 
-                "num_gpus": 2,
+                "num_gpus": 1,
                 
                 "log_level": "INFO",
                 "num_workers": 8,
@@ -326,11 +310,12 @@ if __name__ == "__main__":
                 "vf_clip_param": 10.0,
                 "entropy_coeff": 0.01,
                 "train_batch_size": 5000,
-                "sample_batch_size": 100,
+                "rollout_fragment_length": 100,
                 "sgd_minibatch_size": 500,
                 "num_sgd_iter": 10,
                 "batch_mode": 'truncate_episodes',
-                "vf_share_layers": True,
+                #"observation_filter": 'NoFilter',
+                #"vf_share_layers": True,
         
                 # Method specific
         
@@ -360,25 +345,34 @@ if __name__ == "__main__":
                 "num_gpus": 1,
                 "num_workers": 8,
                 "num_envs_per_worker": 8,
-                "learning_starts": 1000,
+                "learning_starts": 10000,
                 "buffer_size": int(1e5),
-                "compress_observations": True,
+                #"compress_observations": True,
                 "sample_batch_size": 20,
                 "train_batch_size": 512,
                 "gamma": .99,
-        
+                "lr": 0.0001,
+                "exploration_config": {
+                    "epsilon_timesteps": 2,
+                    "final_epsilon": 0.0,
+                },
+                "target_network_update_freq": 500,
                 # Method specific
                 "num_atoms": 51,
                 "dueling": True,
                 "double_q": True,
-                "n_step": 2,
-                "batch_mode": "complete_episodes",
+                "n_step": 3,
+                #"batch_mode": "complete_episodes",
                 "prioritized_replay": True,
+                "prioritized_replay_alpha": 0.5,
+                "final_prioritized_replay_beta": 1.0,
+                "prioritized_replay_beta_annealing_timesteps": 400000,
+                "gpu": True,
 
                 # # alternative 1
-                # "noisy": True,
-                # alternative 2
-                "parameter_noise": True,
+                "noisy": True,
+                # # alternative 2
+                #"parameter_noise": True,
 
                 # based on expected return
                 "v_min": 0,
