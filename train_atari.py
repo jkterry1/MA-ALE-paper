@@ -367,12 +367,11 @@ if __name__ == "__main__":
                 "prioritized_replay_alpha": 0.5,
                 "final_prioritized_replay_beta": 1.0,
                 "prioritized_replay_beta_annealing_timesteps": 400000,
-                "gpu": True,
 
                 # # alternative 1
-                "noisy": True,
+                #"noisy": True,
                 # # alternative 2
-                #"parameter_noise": True,
+                "parameter_noise": True,
 
                 # based on expected return
                 "v_min": 0,
