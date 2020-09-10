@@ -18,8 +18,8 @@ from ray.rllib.env import PettingZooEnv
 
 from pettingzoo.utils import observation_saver
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
-from supersuit.aec_wrappers import clip_reward, sticky_actions, resize
-from supersuit.aec_wrappers import frame_skip, frame_stack, agent_indicator
+from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
+from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0
 
 from numpy import float32
 
@@ -120,13 +120,13 @@ if __name__ == "__main__":
 
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
-        env = clip_reward(env, lower_bound=-1, upper_bound=1)
-        #env = sticky_actions(env, repeat_action_probability=0.25)
-        env = resize(env, 84, 84)
-        #env = color_reduction(env, mode='full')
-        #env = frame_skip(env, 4)
-        env = frame_stack(env, 4)
-        env = agent_indicator(env, type_only=False)
+        env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
+        #env = sticky_actions_v0(env, repeat_action_probability=0.25)
+        env = resize_v0(env, 84, 84)
+        #env = color_reduction_v0(env, mode='full')
+        #env = frame_skip_v0(env, 4)
+        env = frame_stack_v0(env, 4)
+        env = agent_indicator_v0(env, type_only=False)
         return env
     
     register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
