@@ -14,7 +14,7 @@ from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
-from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
+from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v1, surround_v0, space_invaders_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
 from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0, flatten_v0
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     elif env_name=='combat_tank':
         game_env = combat_tank_v0
     elif env_name=='joust':
-        game_env = joust_v0
+        game_env = joust_v1
     elif env_name=='surround':
         game_env = surround_v0
     elif env_name=='space_invaders':
@@ -336,7 +336,7 @@ if __name__ == "__main__":
             name="RDQN",
             stop={"episodes_total": 60000},
             checkpoint_freq=10,
-            local_dir="~/ray_results_base/"+env_name,
+            local_dir="~/ray_results_base_new/"+env_name,
             config={
         
                 # Enviroment specific
@@ -348,7 +348,7 @@ if __name__ == "__main__":
                 "num_workers": 8,
                 "num_envs_per_worker": 8,
                 "learning_starts": 10000,
-                "buffer_size": int(1e5),
+                "buffer_size": int(1e6),
                 #"compress_observations": True,
                 "sample_batch_size": 20,
                 "train_batch_size": 512,
@@ -369,16 +369,16 @@ if __name__ == "__main__":
                 "prioritized_replay_alpha": 0.5,
                 "final_prioritized_replay_beta": 1.0,
                 "prioritized_replay_beta_annealing_timesteps": 400000,
-                "gpu": True,
+                #"gpu": True,
 
                 # # alternative 1
-                "noisy": True,
+                #"noisy": True,
                 # # alternative 2
-                #"parameter_noise": True,
+                "parameter_noise": True,
 
                 # based on expected return
                 "v_min": 0,
-                "v_max": 1500,
+                "v_max": 150,
         
                 "multiagent": {
                     "policies": policies,
