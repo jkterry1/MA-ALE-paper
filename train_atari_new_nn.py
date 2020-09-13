@@ -348,7 +348,7 @@ if __name__ == "__main__":
                 "num_workers": 8,
                 "num_envs_per_worker": 8,
                 "learning_starts": 10000,
-                "buffer_size": int(1e6),
+                "buffer_size": int(5e5),
                 #"compress_observations": True,
                 "sample_batch_size": 20,
                 "train_batch_size": 512,

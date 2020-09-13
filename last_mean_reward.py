@@ -3,6 +3,7 @@ import sys
 filename = sys.argv[1]
 
 reward_found = False
+policy_reward_max_found = False
 episodes_found = False
 iterations_found = False
 
@@ -17,7 +18,16 @@ with open(filename,'r') as f:
         if "episodes_total" in line:
             total_episodes = int(line.split()[1])
             episodes_found = True
+        if "policy_0" in line and policy_reward_mean:
+            policy_reward_max = float(line.split()[1])
+            policy_reward_max_found = True
+        if "policy_reward_mean" in line:
+            policy_reward_mean = True
+            continue
         if reward_found and episodes_found and iterations_found:
             break
+        policy_reward_mean = False
 
 print("Average Total Reward: {} after {} episodes and {} iterations.".format(mean_reward, total_episodes, total_iterations))
+if policy_reward_max_found:
+    print("Policy Reward Max: {}".format(policy_reward_max))
