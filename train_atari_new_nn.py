@@ -14,7 +14,8 @@ from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
-from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
+from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v1, surround_v0, space_invaders_v0, warlords_v1, tennis_v1
+from pettingzoo.atari import entombed_competitive_v1, ice_hockey_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
 from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0, flatten_v0
 
@@ -88,14 +89,24 @@ if __name__ == "__main__":
     
     if env_name=='boxing':
         game_env = boxing_v0
+    elif env_name=='combat_jet':
+        game_env = combat_jet_v0
     elif env_name=='combat_tank':
         game_env = combat_tank_v0
+    elif env_name=='entombed_competitive':
+        game_env = entombed_competitive_v1
+    elif env_name=='ice_hockey':
+        game_env = ice_hockey_v0
     elif env_name=='joust':
-        game_env = joust_v0
+        game_env = joust_v1
+    elif env_name=='tennis':
+        game_env = tennis_v1
     elif env_name=='surround':
         game_env = surround_v0
     elif env_name=='space_invaders':
         game_env = space_invaders_v0
+    elif env_name=='warlords':
+        game_env = warlords_v1
     else:
         raise TypeError("{} environment not supported!".format(game_env))
 
@@ -335,8 +346,8 @@ if __name__ == "__main__":
             "DQN",
             name="RDQN",
             stop={"episodes_total": 60000},
-            checkpoint_freq=10,
-            local_dir="~/ray_results_base/"+env_name,
+            checkpoint_freq=100,
+            local_dir="~/ray_results_base_new/"+env_name,
             config={
         
                 # Enviroment specific
@@ -369,12 +380,11 @@ if __name__ == "__main__":
                 "prioritized_replay_alpha": 0.5,
                 "final_prioritized_replay_beta": 1.0,
                 "prioritized_replay_beta_annealing_timesteps": 400000,
-                "gpu": True,
 
                 # # alternative 1
-                "noisy": True,
+                #"noisy": True,
                 # # alternative 2
-                #"parameter_noise": True,
+                "parameter_noise": True,
 
                 # based on expected return
                 "v_min": 0,
