@@ -172,7 +172,7 @@ if __name__ == "__main__":
             name="ADQN",
             stop={"episodes_total": 600000},
             checkpoint_freq=10,
-            local_dir="~/ray_results_base_new/"+env_name,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -290,7 +290,7 @@ if __name__ == "__main__":
             name="PPO",
             stop={"episodes_total": 60000},
             checkpoint_freq=10,
-            local_dir="~/ray_results_base_new/"+env_name,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -335,8 +335,8 @@ if __name__ == "__main__":
             "DQN",
             name="RDQN",
             stop={"episodes_total": 60000},
-            checkpoint_freq=10,
-            local_dir="~/ray_results_base_new/"+env_name,
+            checkpoint_freq=100,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -348,7 +348,7 @@ if __name__ == "__main__":
                 "num_workers": 8,
                 "num_envs_per_worker": 8,
                 "learning_starts": 10000,
-                "buffer_size": int(5e5),
+                "buffer_size": int(1e5),
                 #"compress_observations": True,
                 "sample_batch_size": 20,
                 "train_batch_size": 512,
