@@ -16,7 +16,7 @@ from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v1, surround_v0, space_invaders_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
-from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0, flatten_v0
+from supersuit import frame_skip_v0, frame_stack_v1, agent_indicator_v0, flatten_v0
 
 #from cyclic_reward_wrapper import cyclic_reward_wrapper
 
@@ -106,7 +106,7 @@ if __name__ == "__main__":
         env = resize_v0(env, 84, 84)
         #env = color_reduction_v0(env, mode='full')
         #env = frame_skip_v0(env, 4)
-        env = frame_stack_v0(env, 4)
+        env = frame_stack_v1(env, 4)
         env = agent_indicator_v0(env, type_only=False)
         #env = flatten_v0(env)
         return env
