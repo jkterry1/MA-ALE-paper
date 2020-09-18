@@ -122,7 +122,7 @@ if __name__ == "__main__":
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
         #env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
-        #env = sticky_actions_v0(env, repeat_action_probability=0.25)
+        env = sticky_actions_v0(env, repeat_action_probability=0.25)
         env = resize_v0(env, 84, 84)
         #env = color_reduction_v0(env, mode='full')
         #env = frame_skip_v0(env, 4)
@@ -178,14 +178,15 @@ if __name__ == "__main__":
             #print(observation.shape) 
             #imsave("./"+str(iteration)+".png",observation[:,:,0]) 
             env.render()
-            #if env.agent_selection == policy_agent:
-            #    observation = env.observe(policy_agent)
-            #    action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
-            #else:
-            #    action = env.action_spaces[policy_agent].sample() #same action space for all agents
             observation = env.observe(env.agent_selection)
-            action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=actions[env.agent_selection] , prev_reward=rewardss[env.agent_selection])
-
+            ####
+            if env.agent_selection == policy_agent:
+                action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=actions[env.agent_selection], prev_reward=rewardss[env.agent_selection])
+            else:
+                action = env.action_spaces[policy_agent].sample() #same action space for all agents
+            ####
+            #action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=actions[env.agent_selection] , prev_reward=rewardss[env.agent_selection])
+            ####
             print('Agent: {}, action: {}'.format(env.agent_selection,action))
             actions[env.agent_selection] = action
             env.step(action, observe=False)
