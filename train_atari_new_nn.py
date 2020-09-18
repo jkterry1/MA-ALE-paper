@@ -17,7 +17,7 @@ from ray.rllib.env import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v1, surround_v0, space_invaders_v0, warlords_v1, tennis_v1
 from pettingzoo.atari import entombed_competitive_v1, ice_hockey_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
-from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0, flatten_v0
+from supersuit import frame_skip_v0, frame_stack_v1, agent_indicator_v0, flatten_v0
 
 #from cyclic_reward_wrapper import cyclic_reward_wrapper
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         env = resize_v0(env, 84, 84)
         #env = color_reduction_v0(env, mode='full')
         #env = frame_skip_v0(env, 4)
-        env = frame_stack_v0(env, 4)
+        env = frame_stack_v1(env, 4)
         env = agent_indicator_v0(env, type_only=False)
         #env = flatten_v0(env)
         return env
@@ -181,9 +181,9 @@ if __name__ == "__main__":
         tune.run(
             "APEX",
             name="ADQN",
-            stop={"episodes_total": 600000},
+            stop={"episodes_total": 60000},
             checkpoint_freq=10,
-            local_dir="~/ray_results_base_new/"+env_name,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -301,7 +301,7 @@ if __name__ == "__main__":
             name="PPO",
             stop={"episodes_total": 60000},
             checkpoint_freq=10,
-            local_dir="~/ray_results_base_new/"+env_name,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -347,7 +347,7 @@ if __name__ == "__main__":
             name="RDQN",
             stop={"episodes_total": 60000},
             checkpoint_freq=100,
-            local_dir="~/ray_results_base_new/"+env_name,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -359,7 +359,7 @@ if __name__ == "__main__":
                 "num_workers": 8,
                 "num_envs_per_worker": 8,
                 "learning_starts": 10000,
-                "buffer_size": int(1e5),
+                "buffer_size": int(5e5),
                 #"compress_observations": True,
                 "sample_batch_size": 20,
                 "train_batch_size": 512,
@@ -388,7 +388,7 @@ if __name__ == "__main__":
 
                 # based on expected return
                 "v_min": 0,
-                "v_max": 1500,
+                "v_max": 150,
         
                 "multiagent": {
                     "policies": policies,

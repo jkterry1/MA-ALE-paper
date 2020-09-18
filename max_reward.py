@@ -10,12 +10,12 @@ algorithm = sys.argv[2].upper()
 
 #algorithm = algorithm.lower()
 
-data_path = "../ray_results_base/"+env_name+"/"+algorithm
+data_path = "../ray_results_atari/"+env_name+"/"+algorithm
 
 df = pd.read_csv(os.path.join(data_path,'progress.csv'))
 df = df[['training_iteration', "episode_reward_mean", "episodes_total"]]
 
-iter_range = list(range(10,500000,10))
+iter_range = list(range(100,500000,100))
 df2 = df[df['training_iteration'].isin(iter_range)]
 iter_max = df2.loc[df2['episode_reward_mean'].idxmax(), ['training_iteration', "episode_reward_mean", "episodes_total"]]
 

@@ -19,7 +19,7 @@ from ray.rllib.env import PettingZooEnv
 from pettingzoo.utils import observation_saver
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
-from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0
+from supersuit import frame_skip_v0, frame_stack_v1, agent_indicator_v0
 
 from numpy import float32
 
@@ -36,7 +36,8 @@ class AtariModel(TFModelV2):
                  name="atari_model"):
         super(AtariModel, self).__init__(obs_space, action_space, num_outputs, model_config,
                          name)
-        inputs = tf.keras.layers.Input(shape=obs_space.shape, name='observations')
+        inputs  = tf.keras.layers.Input(shape=(84,84,4), name='observations')
+        inputs2 = tf.keras.layers.Input(shape=(2,), name="agent_indicator") 
         # Convolutions on the frames on the screen
         layer1 = tf.keras.layers.Conv2D(
                 32,
@@ -56,12 +57,12 @@ class AtariModel(TFModelV2):
                 strides=(1, 1),
                 activation="relu",
                 data_format='channels_last')(layer2)
-        layer4 = tf.keras.layers.Flatten(
-                data_format='channels_last')(layer3)
+        layer4 = tf.keras.layers.Flatten()(layer3)
+        concat_layer = tf.keras.layers.Concatenate()([layer4, inputs2])
         layer5 = tf.keras.layers.Dense(
                 512,
                 activation="relu",
-                kernel_initializer=normc_initializer(1.0))(layer4)
+                kernel_initializer=normc_initializer(1.0))(concat_layer)
         action = tf.keras.layers.Dense(
                 num_outputs,
                 activation="linear",
@@ -72,11 +73,11 @@ class AtariModel(TFModelV2):
                 activation=None,
                 name="value_out",
                 kernel_initializer=normc_initializer(0.01))(layer5)
-        self.base_model = tf.keras.Model(inputs, [action, value_out])
+        self.base_model = tf.keras.Model([inputs, inputs2], [action, value_out])
         self.register_variables(self.base_model.variables)
 
     def forward(self, input_dict, state, seq_lens):
-        model_out, self._value_out = self.base_model(input_dict["obs"])
+        model_out, self._value_out = self.base_model([input_dict["obs"][:,:,:,0:4], input_dict["obs"][:,0,0,4:6]])
         return model_out, state
     
     def value_function(self):
@@ -96,7 +97,7 @@ if __name__ == "__main__":
     
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
-    checkpoint_path = "./ray_results/{}/{}/v1/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
+    checkpoint_path = "./ray_results/{}/{}/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
     
     if method == "RDQN":
         Trainer = DQNTrainer
@@ -125,7 +126,7 @@ if __name__ == "__main__":
         env = resize_v0(env, 84, 84)
         #env = color_reduction_v0(env, mode='full')
         #env = frame_skip_v0(env, 4)
-        env = frame_stack_v0(env, 4)
+        env = frame_stack_v1(env, 4)
         env = agent_indicator_v0(env, type_only=False)
         return env
     
@@ -163,30 +164,42 @@ if __name__ == "__main__":
     # init obs, action, reward
     env = env_creator(0)
     observation = env.reset()
-    
+    actions = env.rewards
+    rewardss = env.rewards
     rewards = [0]
+    rewards2 = [0]
     total_reward = 0
+    total_reward2 = 0
     done = False
     iteration = 0
     policy_agent = 'first_0'
     while not done:
-        
-        #imsave("./"+str(iteration)+".png",np.reshape(observation,(30,50))) 
-        #env.render()
-        if env.agent_selection == policy_agent:
-            observation = env.observe(policy_agent)
-            action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
-        else:
-            action = env.action_spaces[policy_agent].sample() #same action space for all agents
-        print('Agent: {}, action: {}'.format(env.agent_selection,action))
-        env.step(action, observe=False)
-        print('reward: {}, done: {}'.format(env.rewards, env.dones))
-        reward = env.rewards[policy_agent]
+        for _ in env.agents:
+            #print(observation.shape) 
+            #imsave("./"+str(iteration)+".png",observation[:,:,0]) 
+            env.render()
+            #if env.agent_selection == policy_agent:
+            #    observation = env.observe(policy_agent)
+            #    action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
+            #else:
+            #    action = env.action_spaces[policy_agent].sample() #same action space for all agents
+            observation = env.observe(env.agent_selection)
+            action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=actions[env.agent_selection] , prev_reward=rewardss[env.agent_selection])
+
+            print('Agent: {}, action: {}'.format(env.agent_selection,action))
+            actions[env.agent_selection] = action
+            env.step(action, observe=False)
+            print('reward: {}, done: {}'.format(env.rewards, env.dones))
+        rewardss = env.rewards
+        reward = env.rewards['first_0']
+        reward2 = env.rewards['second_0']
         rewards.append(reward)
+        rewards2.append(env.rewards['second_0'])
         done = any(env.dones.values())
         total_reward += reward
+        total_reward2 += reward2
         iteration += 1
 
     #env.close()
-    print("done", done, total_reward)
+    print("Done. First Agent: ", total_reward, ', Second Agent :', total_reward2, 'ENv rewards: ', env.rewards)
 
