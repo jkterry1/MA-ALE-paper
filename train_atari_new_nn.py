@@ -359,7 +359,7 @@ if __name__ == "__main__":
                 "num_workers": 8,
                 "num_envs_per_worker": 8,
                 "learning_starts": 10000,
-                "buffer_size": int(5e5),
+                "buffer_size": int(4e5),
                 #"compress_observations": True,
                 "sample_batch_size": 20,
                 "train_batch_size": 512,
@@ -387,8 +387,8 @@ if __name__ == "__main__":
                 "parameter_noise": True,
 
                 # based on expected return
-                "v_min": 0,
-                "v_max": 150,
+                "v_min": -100,
+                "v_max": 100,
         
                 "multiagent": {
                     "policies": policies,
