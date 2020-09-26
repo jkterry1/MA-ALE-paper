@@ -89,16 +89,17 @@ if __name__ == "__main__":
     
     methods = ["ADQN", "PPO", "RDQN"]
     
-    assert len(sys.argv) == 4, "Input the learning method as the second argument"
+    assert len(sys.argv) == 5, "Input the learning method as the second argument"
     env_name = sys.argv[1].lower()
     method = sys.argv[2].upper()
-    checkpoint = sys.argv[3] 
+    method_folder = sys.argv[3]
+    checkpoint = sys.argv[4] 
     assert method in methods, "Method should be one of {}".format(methods)
     
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
-    checkpoint_path = "./ray_results/{}/{}/checkpoint_{}/checkpoint-{}".format(env_name,method,checkpoint, checkpoint)
-    
+    checkpoint_path = "../ray_results_atari/{}/{}/{}/checkpoint_{}/checkpoint-{}".format(env_name,method,method_folder,checkpoint,checkpoint)
+
     if method == "RDQN":
         Trainer = DQNTrainer
     elif method == "ADQN":
@@ -108,10 +109,16 @@ if __name__ == "__main__":
 
     if env_name=='boxing':
         game_env = boxing_v0
+    elif env_name=='combat_jet':
+        game_env = combat_jet_v0
     elif env_name=='combat_tank':
         game_env = combat_tank_v0
+    elif env_name=='ice_hockey':
+        game_env = ice_hockey_v0
     elif env_name=='joust':
         game_env = joust_v0
+    elif env_name=='tennis':
+        env_name = tennis_v1
     elif env_name=='surround':
         game_env = surround_v0
     elif env_name=='space_invaders':
@@ -122,7 +129,7 @@ if __name__ == "__main__":
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
         #env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
-        #env = sticky_actions_v0(env, repeat_action_probability=0.25)
+        env = sticky_actions_v0(env, repeat_action_probability=0.25)
         env = resize_v0(env, 84, 84)
         #env = color_reduction_v0(env, mode='full')
         #env = frame_skip_v0(env, 4)
@@ -163,43 +170,40 @@ if __name__ == "__main__":
 
     # init obs, action, reward
     env = env_creator(0)
-    observation = env.reset()
-    actions = env.rewards
-    rewardss = env.rewards
-    rewards = [0]
-    rewards2 = [0]
-    total_reward = 0
-    total_reward2 = 0
-    done = False
-    iteration = 0
-    policy_agent = 'first_0'
-    while not done:
-        for _ in env.agents:
-            #print(observation.shape) 
-            #imsave("./"+str(iteration)+".png",observation[:,:,0]) 
-            env.render()
-            #if env.agent_selection == policy_agent:
-            #    observation = env.observe(policy_agent)
-            #    action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
-            #else:
-            #    action = env.action_spaces[policy_agent].sample() #same action space for all agents
-            observation = env.observe(env.agent_selection)
-            action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=actions[env.agent_selection] , prev_reward=rewardss[env.agent_selection])
+    total_rewards = dict(zip(env.agents, [[] for _ in range(env.num_agents)]))
+    for _ in range(20):
+        observation = env.reset()
+        prev_actions = env.rewards
+        prev_rewards = env.rewards
+        rewards = dict(zip(env.agents, [[0] for _ in range(env.num_agents)]))
+        done = False
+        iteration = 0
+        policy_agent = 'first_0'
+        while not done:
+            for _ in env.agents:
+                #print(observation.shape) 
+                #imsave("./"+str(iteration)+".png",observation[:,:,0]) 
+                #env.render()
+                #if env.agent_selection == policy_agent:
+                #    observation = env.observe(policy_agent)
+                #    action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
+                #else:
+                #    action = env.action_spaces[policy_agent].sample() #same action space for all agents
+                observation = env.observe(env.agent_selection)
+                action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=prev_actions[env.agent_selection], prev_reward=prev_rewards[env.agent_selection])
 
-            print('Agent: {}, action: {}'.format(env.agent_selection,action))
-            actions[env.agent_selection] = action
-            env.step(action, observe=False)
-            print('reward: {}, done: {}'.format(env.rewards, env.dones))
-        rewardss = env.rewards
-        reward = env.rewards['first_0']
-        reward2 = env.rewards['second_0']
-        rewards.append(reward)
-        rewards2.append(env.rewards['second_0'])
-        done = any(env.dones.values())
-        total_reward += reward
-        total_reward2 += reward2
-        iteration += 1
-
+                #print('Agent: {}, action: {}'.format(env.agent_selection,action))
+                prev_actions[env.agent_selection] = action
+                env.step(action, observe=False)
+                #print('reward: {}, done: {}'.format(env.rewards, env.dones))
+            prev_rewards = env.rewards
+            for agent in env.agents:
+                rewards[agent].append(prev_rewards[agent])
+            done = any(env.dones.values())
+            iteration += 1
+        for agent in env.agents:
+            total_rewards[agent].append(np.sum(rewards[agent]))
     #env.close()
-    print("Done. First Agent: ", total_reward, ', Second Agent :', total_reward2, 'ENv rewards: ', env.rewards)
-
+    for agent in env.agents:
+        print("Agent: {}, Reward: {}".format(agent, np.mean(rewards[agent])))
+    print('Total reward: {}'.format(total_rewards))

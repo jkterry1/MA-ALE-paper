@@ -14,9 +14,10 @@ from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from ray.rllib.env import PettingZooEnv
-from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
+from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v1, surround_v0, space_invaders_v0, warlords_v1, tennis_v1
+from pettingzoo.atari import entombed_competitive_v1, ice_hockey_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
-from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0, flatten_v0
+from supersuit import frame_skip_v0, frame_stack_v1, agent_indicator_v0, flatten_v0
 
 #from cyclic_reward_wrapper import cyclic_reward_wrapper
 
@@ -27,7 +28,8 @@ class AtariModel(TFModelV2):
                  name="atari_model"):
         super(AtariModel, self).__init__(obs_space, action_space, num_outputs, model_config,
                          name)
-        inputs = tf.keras.layers.Input(shape=obs_space.shape, name='observations')
+        inputs = tf.keras.layers.Input(shape=(84,84,4), name='observations')
+        inputs2 = tf.keras.layers.Input(shape=(2,), name='agent_indicator')
         # Convolutions on the frames on the screen
         layer1 = tf.keras.layers.Conv2D(
                 32,
@@ -48,10 +50,11 @@ class AtariModel(TFModelV2):
                 activation="relu",
                 data_format='channels_last')(layer2)
         layer4 = tf.keras.layers.Flatten()(layer3)
+        concat_layer = tf.keras.layers.Concatenate()([layer4, inputs2])
         layer5 = tf.keras.layers.Dense(
                 512,
                 activation="relu",
-                kernel_initializer=normc_initializer(1.0))(layer4)
+                kernel_initializer=normc_initializer(1.0))(concat_layer)
         action = tf.keras.layers.Dense(
                 num_outputs,
                 activation="linear",
@@ -62,11 +65,11 @@ class AtariModel(TFModelV2):
                 activation=None,
                 name="value_out",
                 kernel_initializer=normc_initializer(0.01))(layer5)
-        self.base_model = tf.keras.Model(inputs, [action, value_out])
+        self.base_model = tf.keras.Model([inputs, inputs2], [action, value_out])
         self.register_variables(self.base_model.variables)
 
     def forward(self, input_dict, state, seq_lens):
-        model_out, self._value_out = self.base_model(input_dict["obs"])
+        model_out, self._value_out = self.base_model([input_dict["obs"][:,:,:,0:4], input_dict["obs"][:,0,0,4:6]])
         return model_out, state
     
     def value_function(self):
@@ -86,25 +89,35 @@ if __name__ == "__main__":
     
     if env_name=='boxing':
         game_env = boxing_v0
+    elif env_name=='combat_jet':
+        game_env = combat_jet_v0
     elif env_name=='combat_tank':
         game_env = combat_tank_v0
+    elif env_name=='entombed_competitive':
+        game_env = entombed_competitive_v1
+    elif env_name=='ice_hockey':
+        game_env = ice_hockey_v0
     elif env_name=='joust':
-        game_env = joust_v0
+        game_env = joust_v1
+    elif env_name=='tennis':
+        game_env = tennis_v1
     elif env_name=='surround':
         game_env = surround_v0
     elif env_name=='space_invaders':
         game_env = space_invaders_v0
+    elif env_name=='warlords':
+        game_env = warlords_v1
     else:
         raise TypeError("{} environment not supported!".format(game_env))
 
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
         env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
-        #env = sticky_actions_v0(env, repeat_action_probability=0.25)
+        env = sticky_actions_v0(env, repeat_action_probability=0.25)
         env = resize_v0(env, 84, 84)
         #env = color_reduction_v0(env, mode='full')
-        #env = frame_skip_v0(env, 4)
-        env = frame_stack_v0(env, 4)
+        env = frame_skip_v0(env, 4)
+        env = frame_stack_v1(env, 4)
         env = agent_indicator_v0(env, type_only=False)
         #env = flatten_v0(env)
         return env
@@ -168,9 +181,9 @@ if __name__ == "__main__":
         tune.run(
             "APEX",
             name="ADQN",
-            stop={"episodes_total": 600000},
-            checkpoint_freq=10,
-            local_dir="~/ray_results_base/"+env_name,
+            stop={"episodes_total": 50000},
+            checkpoint_freq=20,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -179,31 +192,32 @@ if __name__ == "__main__":
                 "dueling": True,
                 "num_atoms": 1,
                 "noisy": False,
-                "prioritized_replay": False,
-                "n_step": 1,
-                #"lr": 0.0001,
-                "lr": 0.0000625,
-                "adam_epsilon": 0.00015,
+                "n_step": 3,
+                "lr": 0.0001,
+                #"lr": 0.0000625,
+                "adam_epsilon": 1.5e-4,
                 "buffer_size": int(1e6),
                 "exploration_config": {
                     "final_epsilon": 0.01,
                     "epsilon_timesteps": 200000,
                 },
+                "prioritized_replay": True,
                 "prioritized_replay_alpha": 0.5,
+                "prioritized_replay_beta": 0.4,
                 "final_prioritized_replay_beta": 1.0,
                 "prioritized_replay_beta_annealing_timesteps": 2000000,
 
                 "num_gpus": 1,
                 
-                "log_level": "INFO",
-                "num_workers": 8,
+                "log_level": "ERROR",
+                "num_workers": 31,
                 "num_envs_per_worker": 8,
-                "rollout_fragment_length": 4,
-                "train_batch_size": 32,
-                "target_network_update_freq": 8000,
-                "timesteps_per_iteration": 10000,
-                "learning_starts": 20000,
-                "compress_observations": True, 
+                "rollout_fragment_length": 32,
+                "train_batch_size": 512,
+                "target_network_update_freq": 50000,
+                "timesteps_per_iteration": 25000,
+                "learning_starts": 80000,
+                "compress_observations": False, 
                 "gamma": 0.99,
                 # Method specific
                 "multiagent": {
@@ -286,9 +300,9 @@ if __name__ == "__main__":
         tune.run(
             "PPO",
             name="PPO",
-            stop={"episodes_total": 60000},
+            stop={"episodes_total": 50000},
             checkpoint_freq=10,
-            local_dir="~/ray_results_base/"+env_name,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -332,9 +346,9 @@ if __name__ == "__main__":
         tune.run(
             "DQN",
             name="RDQN",
-            stop={"episodes_total": 60000},
-            checkpoint_freq=10,
-            local_dir="~/ray_results_base/"+env_name,
+            stop={"episodes_total": 50000},
+            checkpoint_freq=100,
+            local_dir="~/ray_results_atari/"+env_name,
             config={
         
                 # Enviroment specific
@@ -343,20 +357,21 @@ if __name__ == "__main__":
                 # General
                 "log_level": "ERROR",
                 "num_gpus": 1,
-                "num_workers": 8,
+                "num_workers": 31,
                 "num_envs_per_worker": 8,
-                "learning_starts": 10000,
-                "buffer_size": int(1e5),
+                "learning_starts": 80000,
+                "adam_epsilon": 1.5e-4,
+                "buffer_size": int(5e5),
                 #"compress_observations": True,
-                "sample_batch_size": 20,
+                "rollout_fragment_length": 32,
                 "train_batch_size": 512,
                 "gamma": .99,
-                "lr": 0.0001,
+                "lr": 0.0000625,
                 "exploration_config": {
                     "epsilon_timesteps": 2,
                     "final_epsilon": 0.0,
                 },
-                "target_network_update_freq": 500,
+                "target_network_update_freq": 32000,
                 # Method specific
                 "num_atoms": 51,
                 "dueling": True,
@@ -365,17 +380,18 @@ if __name__ == "__main__":
                 #"batch_mode": "complete_episodes",
                 "prioritized_replay": True,
                 "prioritized_replay_alpha": 0.5,
+                "prioritized_replay_beta": 0.4,
                 "final_prioritized_replay_beta": 1.0,
                 "prioritized_replay_beta_annealing_timesteps": 400000,
 
                 # # alternative 1
-                #"noisy": True,
+                "noisy": True,
                 # # alternative 2
-                "parameter_noise": True,
+                #"parameter_noise": True,
 
                 # based on expected return
-                "v_min": 0,
-                "v_max": 1500,
+                "v_min": -40,
+                "v_max": 40,
         
                 "multiagent": {
                     "policies": policies,
