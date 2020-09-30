@@ -13,7 +13,7 @@ from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
-from ray.rllib.env import PettingZooEnv
+from pettingzooenv import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v0, surround_v0, space_invaders_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
 from supersuit import frame_skip_v0, frame_stack_v0, agent_indicator_v0, flatten_v0

@@ -13,7 +13,7 @@ from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
-from ray.rllib.env import PettingZooEnv
+from pettingzooenv import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v1, surround_v0, space_invaders_v0, warlords_v1, tennis_v1
 from pettingzoo.atari import entombed_competitive_v1, ice_hockey_v0
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
@@ -71,7 +71,7 @@ class AtariModel(TFModelV2):
     def forward(self, input_dict, state, seq_lens):
         model_out, self._value_out = self.base_model([input_dict["obs"][:,:,:,0:4], input_dict["obs"][:,0,0,4:6]])
         return model_out, state
-    
+
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
 
@@ -79,14 +79,14 @@ class AtariModel(TFModelV2):
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
     # ADQN - Apex DQN
-    
+
     methods = ["ADQN", "PPO", "RDQN"]
-    
+
     assert len(sys.argv) == 3, "Input the learning method as the second argument"
     env_name = sys.argv[1].lower()
     method = sys.argv[2]
     assert method in methods, "Method should be one of {}".format(methods)
-    
+
     if env_name=='boxing':
         game_env = boxing_v0
     elif env_name=='combat_jet':
@@ -121,13 +121,13 @@ if __name__ == "__main__":
         env = agent_indicator_v0(env, type_only=False)
         #env = flatten_v0(env)
         return env
-    
+
     register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
-    
+
     test_env = PettingZooEnv(env_creator({}))
     obs_space = test_env.observation_space
     act_space = test_env.action_space
-    
+
     ModelCatalog.register_custom_model("AtariModel", AtariModel)
     def gen_policy(i):
         config = {
@@ -138,7 +138,7 @@ if __name__ == "__main__":
         }
         return (None, obs_space, act_space, config)
     policies = {"policy_0": gen_policy(0)}
-    
+
     # for all methods
     policy_ids = list(policies.keys())
 
@@ -150,10 +150,10 @@ if __name__ == "__main__":
             checkpoint_freq=10,
             local_dir="~/ray_results_base/"+env_name,
             config={
-        
+
                 # Enviroment specific
                 "env": env_name,
-        
+
                 # General
                 "log_level": "ERROR",
                 "num_gpus": 1,
@@ -163,11 +163,11 @@ if __name__ == "__main__":
                 "sample_batch_size": 20,
                 "train_batch_size": 512,
                 "gamma": .99,
-        
+
                 "lr_schedule": [[0, 0.0007],[20000000, 0.000000000001]],
-        
+
                 # Method specific
-        
+
                 "multiagent": {
                     "policies": policies,
                     "policy_mapping_fn": (
@@ -185,7 +185,7 @@ if __name__ == "__main__":
             checkpoint_freq=20,
             local_dir="~/ray_results_atari/"+env_name,
             config={
-        
+
                 # Enviroment specific
                 "env": env_name,
                 "double_q": True,
@@ -208,7 +208,7 @@ if __name__ == "__main__":
                 "prioritized_replay_beta_annealing_timesteps": 2000000,
 
                 "num_gpus": 1,
-                
+
                 "log_level": "ERROR",
                 "num_workers": 31,
                 "num_envs_per_worker": 8,
@@ -217,7 +217,7 @@ if __name__ == "__main__":
                 "target_network_update_freq": 50000,
                 "timesteps_per_iteration": 25000,
                 "learning_starts": 80000,
-                "compress_observations": False, 
+                "compress_observations": False,
                 "gamma": 0.99,
                 # Method specific
                 "multiagent": {
@@ -269,10 +269,10 @@ if __name__ == "__main__":
             checkpoint_freq=10,
             local_dir="~/ray_results_base/"+env_name,
             config={
-        
+
                 # Enviroment specific
                 "env": env_name,
-        
+
                 # General
                 "log_level": "ERROR",
                 "num_gpus": 1,
@@ -282,12 +282,12 @@ if __name__ == "__main__":
                 "sample_batch_size": 20,
                 "train_batch_size": 512,
                 "gamma": .99,
-        
+
                 "clip_rewards": True,
                 "lr_schedule": [[0, 0.0005],[20000000, 0.000000000001]],
-        
+
                 # Method specific
-        
+
                 "multiagent": {
                     "policies": policies,
                     "policy_mapping_fn": (
@@ -304,10 +304,10 @@ if __name__ == "__main__":
             checkpoint_freq=10,
             local_dir="~/ray_results_atari/"+env_name,
             config={
-        
+
                 # Enviroment specific
                 "env": env_name,
-        
+
                 # General
                 "log_level": "ERROR",
                 "num_gpus": 1,
@@ -315,8 +315,8 @@ if __name__ == "__main__":
                 "num_envs_per_worker": 8,
                 "compress_observations": False,
                 "gamma": .99,
-        
-        
+
+
                 "lambda": 0.95,
                 "kl_coeff": 0.5,
                 "clip_rewards": True,
@@ -330,9 +330,9 @@ if __name__ == "__main__":
                 "batch_mode": 'truncate_episodes',
                 #"observation_filter": 'NoFilter',
                 #"vf_share_layers": True,
-        
+
                 # Method specific
-        
+
                 "multiagent": {
                     "policies": policies,
                     "policy_mapping_fn": (
@@ -350,10 +350,10 @@ if __name__ == "__main__":
             checkpoint_freq=100,
             local_dir="~/ray_results_atari/"+env_name,
             config={
-        
+
                 # Enviroment specific
                 "env": env_name,
-        
+
                 # General
                 "log_level": "ERROR",
                 "num_gpus": 1,
@@ -392,7 +392,7 @@ if __name__ == "__main__":
                 # based on expected return
                 "v_min": -40,
                 "v_max": 40,
-        
+
                 "multiagent": {
                     "policies": policies,
                     "policy_mapping_fn": (
