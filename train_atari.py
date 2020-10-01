@@ -15,7 +15,7 @@ from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from pettingzooenv import PettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_tank_v0, joust_v1, surround_v0, space_invaders_v0, warlords_v1, tennis_v1
-from pettingzoo.atari import entombed_competitive_v1, ice_hockey_v0
+from pettingzoo.atari import entombed_competitive_v1, ice_hockey_v0, maze_craze_v1
 from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
 from supersuit import frame_skip_v0, frame_stack_v1, agent_indicator_v0, flatten_v0
 
@@ -99,6 +99,8 @@ if __name__ == "__main__":
         game_env = ice_hockey_v0
     elif env_name=='joust':
         game_env = joust_v1
+    elif env_name=='maze_craze':
+        game_env = maze_craze_v1
     elif env_name=='tennis':
         game_env = tennis_v1
     elif env_name=='surround':
@@ -196,7 +198,7 @@ if __name__ == "__main__":
                 "lr": 0.0001,
                 #"lr": 0.0000625,
                 "adam_epsilon": 1.5e-4,
-                "buffer_size": int(1e6),
+                "buffer_size": int(8e4),
                 "exploration_config": {
                     "final_epsilon": 0.01,
                     "epsilon_timesteps": 200000,
@@ -210,7 +212,7 @@ if __name__ == "__main__":
                 "num_gpus": 1,
 
                 "log_level": "ERROR",
-                "num_workers": 31,
+                "num_workers": 8,
                 "num_envs_per_worker": 8,
                 "rollout_fragment_length": 32,
                 "train_batch_size": 512,
