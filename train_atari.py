@@ -14,7 +14,7 @@ from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
 from pettingzooenv import PettingZooEnv
-from pettingzoo.atari import boxing_v0, combat_jet_v0, combat_tank_v0, double_dunk_v1
+from pettingzoo.atari import boxing_v0, combat_plane_v0, combat_tank_v0, double_dunk_v1
 from pettingzoo.atari import entombed_competitive_v1, entombed_cooperative_v0, flag_capture_v0, ice_hockey_v0
 from pettingzoo.atari import joust_v1, mario_bros_v1, maze_craze_v1, othello_v1
 from pettingzoo.atari import pong_basketball_v0, pong_classic_v0, pong_foozpong_v0, pong_quadrapong_v0
@@ -93,8 +93,8 @@ if __name__ == "__main__":
 
     if env_name=='boxing':
         game_env = boxing_v0
-    elif env_name=='combat_jet':
-        game_env = combat_jet_v0
+    elif env_name=='combat_plane':
+        game_env = combat_plane_v0
     elif env_name=='combat_tank':
         game_env = combat_tank_v0
     elif env_name=='double_dunk':                                                                                                  
