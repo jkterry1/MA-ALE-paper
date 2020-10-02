@@ -156,7 +156,7 @@ class PettingZooEnv(MultiAgentEnv):
             infos (dict): Optional info values for each agent id.
         """
         act_dict_copy = dict(**action_dict)
-        for agent in self.agents:
+        for agent in self.aec_env.agents:
             if agent not in action_dict:
                 action_dict[agent] = self.action_space.sample()
         stepped_agents = set()
@@ -185,7 +185,7 @@ class PettingZooEnv(MultiAgentEnv):
         self.infos = {}
 
         # update self.agents
-        live_agents = list(act_dict_copy.values())
+        live_agents = list(act_dict_copy.keys())
 
         for agent in live_agents:
             self.obs[agent] = self.aec_env.observe(agent)
