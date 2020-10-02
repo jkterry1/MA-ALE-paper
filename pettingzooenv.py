@@ -155,6 +155,10 @@ class PettingZooEnv(MultiAgentEnv):
                 "__all__" (required) is used to indicate env termination.
             infos (dict): Optional info values for each agent id.
         """
+        act_dict_copy = dict(**action_dict)
+        for agent in self.agents:
+            if agent not in action_dict:
+                action_dict[agent] = self.action_space.sample()
         stepped_agents = set()
         while (self.aec_env.agent_selection not in stepped_agents and self.aec_env.dones[self.aec_env.agent_selection]):
             agent = self.aec_env.agent_selection
@@ -181,9 +185,9 @@ class PettingZooEnv(MultiAgentEnv):
         self.infos = {}
 
         # update self.agents
-        self.agents = list(action_dict.keys())
+        live_agents = list(act_dict_copy.values())
 
-        for agent in self.agents:
+        for agent in live_agents:
             self.obs[agent] = self.aec_env.observe(agent)
             self.dones[agent] = self.aec_env.dones[agent]
             self.rewards[agent] = self.aec_env.rewards[agent]
@@ -241,6 +245,9 @@ class ParallelPettingZooEnv(MultiAgentEnv):
         return self.par_env.reset()
 
     def step(self, action_dict):
+        for agent in self.agents:
+            if agent not in action_dict:
+                action_dict[agent] = self.action_space.sample()
         aobs, arew, adones, ainfo = self.par_env.step(action_dict)
         obss = {}
         rews  = {}
