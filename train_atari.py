@@ -13,7 +13,7 @@ from ray.rllib.models.tf.tf_modelv2 import TFModelV2
 from ray.rllib.models.tf.misc import normc_initializer
 from ray.tune.registry import register_env
 from ray.rllib.utils import try_import_tf
-from pettingzooenv import PettingZooEnv
+from pettingzooenv import PettingZooEnv, ParallelPettingZooEnv
 from pettingzoo.atari import boxing_v0, combat_plane_v0, combat_tank_v0, double_dunk_v1
 from pettingzoo.atari import entombed_competitive_v1, entombed_cooperative_v0, flag_capture_v0, ice_hockey_v0
 from pettingzoo.atari import joust_v1, mario_bros_v1, maze_craze_v1, othello_v1
@@ -97,8 +97,8 @@ if __name__ == "__main__":
         game_env = combat_plane_v0
     elif env_name=='combat_tank':
         game_env = combat_tank_v0
-    elif env_name=='double_dunk':                                                                                                  
-        game_env = double_dunk_v1 
+    elif env_name=='double_dunk':
+        game_env = double_dunk_v1
     elif env_name=='entombed_competitive':
         game_env = entombed_competitive_v1
     elif env_name=='entombed_cooperative':
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         raise TypeError("{} environment not supported!".format(game_env))
 
     def env_creator(args):
-        env = game_env.env(obs_type='grayscale_image')
+        env = game_env.parallel_env(obs_type='grayscale_image')
         env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
         env = sticky_actions_v0(env, repeat_action_probability=0.25)
         env = resize_v0(env, 84, 84)
@@ -152,9 +152,9 @@ if __name__ == "__main__":
         #env = flatten_v0(env)
         return env
 
-    register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
+    register_env(env_name, lambda config: ParallelPettingZooEnv(env_creator(config)))
 
-    test_env = PettingZooEnv(env_creator({}))
+    test_env = ParallelPettingZooEnv(env_creator({}))
     obs_space = test_env.observation_space
     act_space = test_env.action_space
 
