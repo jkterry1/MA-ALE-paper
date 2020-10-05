@@ -79,18 +79,7 @@ class AtariModel(TFModelV2):
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
 
-
-if __name__ == "__main__":
-    # RDQN - Rainbow DQN
-    # ADQN - Apex DQN
-
-    methods = ["ADQN", "PPO", "RDQN"]
-
-    assert len(sys.argv) == 3, "Input the learning method as the second argument"
-    env_name = sys.argv[1].lower()
-    method = sys.argv[2]
-    assert method in methods, "Method should be one of {}".format(methods)
-
+def get_env(env_name):
     if env_name=='boxing':
         game_env = boxing_v0
     elif env_name=='combat_plane':
@@ -139,7 +128,9 @@ if __name__ == "__main__":
         game_env = wizard_of_wor_v1
     else:
         raise TypeError("{} environment not supported!".format(game_env))
+    return game_env
 
+def make_env_creator(game_env):
     def env_creator(args):
         env = game_env.parallel_env(obs_type='grayscale_image')
         env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
@@ -151,6 +142,21 @@ if __name__ == "__main__":
         env = agent_indicator_v0(env, type_only=False)
         #env = flatten_v0(env)
         return env
+    return env_creator
+
+if __name__ == "__main__":
+    # RDQN - Rainbow DQN
+    # ADQN - Apex DQN
+
+    methods = ["ADQN", "PPO", "RDQN"]
+
+    assert len(sys.argv) == 3, "Input the learning method as the second argument"
+    env_name = sys.argv[1].lower()
+    method = sys.argv[2]
+    assert method in methods, "Method should be one of {}".format(methods)
+
+    game_env = get_env(env_name)
+    env_creator = make_env_creator(game_env)
 
     register_env(env_name, lambda config: ParallelPettingZooEnv(env_creator(config)))
 

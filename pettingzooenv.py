@@ -258,6 +258,9 @@ class ParallelPettingZooEnv(MultiAgentEnv):
             rews[agent] = arew[agent]
             dones[agent] = adones[agent]
             infos[agent] = ainfo[agent]
+        self.rewards = rews
+        self.dones = dones
+        self.infos = infos
         dones["__all__"] = all(adones.values())
         return obss, rews, dones, infos
 
