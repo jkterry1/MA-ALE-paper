@@ -27,8 +27,11 @@ if __name__ == "__main__":
 
     methods = ["ADQN", "PPO", "RDQN"]
 
-    assert len(sys.argv) == 2, "Input the environment name"
+    assert len(sys.argv) == 4, "Input the environment name, num parallel jobs, is self_play"
     env_name = sys.argv[1].lower()
+    num_parallel_jobs = int(sys.argv[2])
+    play_style = (sys.argv[3])
+    assert play_style in ["self_play","p1_random"]
     method = "ADQN"
     assert method in methods, "Method should be one of {}".format(methods)
 
@@ -74,7 +77,7 @@ if __name__ == "__main__":
         checkpoint_num = i*20*2
         checkpoint_path = f"{train_path}/checkpoint_{checkpoint_num}/checkpoint-{checkpoint_num}"
 
-        run_args = (f"python collect_reward.py {env_name} {train_path} {checkpoint_num}")
+        run_args = (f"python collect_reward.py {env_name} {train_path} {checkpoint_num} {play_style}")
         all_run_args.append(run_args.split())
 
         # RLAgent = Trainer(env=env_name, config=config)
@@ -82,5 +85,5 @@ if __name__ == "__main__":
         # num_steps = 200000
         #rollout(RLAgent, env_name, num_steps)
 
-    executor = ThreadPoolExecutor(max_workers=mp.cpu_count())
+    executor = ThreadPoolExecutor(max_workers=num_parallel_jobs)
     executor.map(subprocess.run,all_run_args)
