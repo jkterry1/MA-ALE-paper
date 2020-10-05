@@ -6,6 +6,7 @@ reward_found = False
 policy_reward_max_found = False
 episodes_found = False
 iterations_found = False
+steps_found = False
 
 with open(filename,'r') as f:
     for line in reversed(list(f)):
@@ -18,6 +19,9 @@ with open(filename,'r') as f:
         if "episodes_total" in line:
             total_episodes = int(line.split()[1])
             episodes_found = True
+        if "timesteps_total" in line:
+            total_steps = int(line.split()[1])
+            steps_found = True
         if "policy_0" in line and policy_reward_mean:
             policy_reward_max = float(line.split()[1])
             policy_reward_max_found = True
@@ -28,6 +32,6 @@ with open(filename,'r') as f:
             break
         policy_reward_mean = False
 
-print("Average Total Reward: {} after {} episodes and {} iterations.".format(mean_reward, total_episodes, total_iterations))
+print("Average Total Reward: {} after {} episodes, {} iterations, and {} million steps.".format(mean_reward, total_episodes, total_iterations, round(total_steps/1e6,1)))
 if policy_reward_max_found:
     print("Policy Reward Max: {}".format(policy_reward_max))
