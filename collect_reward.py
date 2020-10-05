@@ -22,11 +22,10 @@ from ray.rllib.agents.dqn import ApexTrainer
 if __name__ == "__main__":
     methods = ["ADQN", "PPO", "RDQN"]
 
-    assert len(sys.argv) == 5, "Input the environment name, data_path, checkpoint_num"
+    assert len(sys.argv) == 4, "Input the environment name, data_path, checkpoint_num"
     env_name = sys.argv[1].lower()
     data_path = sys.argv[2]
     checkpoint_num = sys.argv[3]
-    play_style = sys.argv[4]
     method = "ADQN"
     assert method in methods, "Method should be one of {}".format(methods)
 
@@ -62,7 +61,7 @@ if __name__ == "__main__":
     config['num_workers']=0
     # ray.init()
 
-    results_path = os.path.join(data_path,"checkpoint_values_"+play_style)
+    results_path = os.path.join(data_path,"checkpoint_values")
     os.makedirs(results_path,exist_ok=True)
     result_path = os.path.join(results_path,f"checkpoint{checkpoint_num}.txt")
 
@@ -96,7 +95,7 @@ if __name__ == "__main__":
                 # env.render()
                 observation = env.observe(env.agent_selection)
                 ####
-                if env.agent_selection == policy_agent or play_style == "self_play":
+                if env.agent_selection == policy_agent:
                     action, _, _ = policy.compute_single_action(observation, prev_action=actions[env.agent_selection], prev_reward=rewardss[env.agent_selection])
                 else:
                     action = env.action_spaces[policy_agent].sample() #same action space for all agents
