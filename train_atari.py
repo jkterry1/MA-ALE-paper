@@ -102,6 +102,8 @@ def get_env(env_name):
         game_env = mario_bros_v1
     elif env_name=='maze_craze':
         game_env = maze_craze_v1
+    elif env_name=='othello':
+        game_env = othello_v1
     elif env_name=='pong_basketball':
         game_env = pong_basketball_v0
     elif env_name=='pong_classic':
