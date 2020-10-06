@@ -132,10 +132,11 @@ def get_env(env_name):
         raise TypeError("{} environment not supported!".format(game_env))
     return game_env
 
-def make_env_creator(game_env):
+def make_env_creator(game_env, clip_rewards):
     def env_creator(args):
         env = game_env.parallel_env(obs_type='grayscale_image')
-        env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
+        if clip_rewards:
+            env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
         env = sticky_actions_v0(env, repeat_action_probability=0.25)
         env = resize_v0(env, 84, 84)
         #env = color_reduction_v0(env, mode='full')
@@ -158,7 +159,7 @@ if __name__ == "__main__":
     assert method in methods, "Method should be one of {}".format(methods)
 
     game_env = get_env(env_name)
-    env_creator = make_env_creator(game_env)
+    env_creator = make_env_creator(game_env, clip_rewards=True)
 
     register_env(env_name, lambda config: ParallelPettingZooEnv(env_creator(config)))
 

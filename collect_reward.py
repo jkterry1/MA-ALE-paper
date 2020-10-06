@@ -34,7 +34,7 @@ if __name__ == "__main__":
     Trainer = ApexTrainer
 
     game_env = get_env(env_name)
-    env_creator = make_env_creator(game_env)
+    env_creator = make_env_creator(game_env, clip_rewards=False)
 
     register_env(env_name, lambda config: ParallelPettingZooEnv(env_creator(config)))
     test_env = ParallelPettingZooEnv(env_creator({}))
