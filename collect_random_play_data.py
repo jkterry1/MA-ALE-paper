@@ -33,28 +33,9 @@ if __name__ == "__main__":
     method = "ADQN"
     assert method in methods, "Method should be one of {}".format(methods)
 
-
     Trainer = ApexTrainer
 
     game_env = get_env(env_name)
-    env_creator = make_env_creator(game_env, clip_rewards=False)
-
-    register_env(env_name, lambda config: ParallelPettingZooEnv(env_creator(config)))
-    test_env = ParallelPettingZooEnv(env_creator({}))
-    obs_space = test_env.observation_space
-    act_space = test_env.action_space
-
-    ModelCatalog.register_custom_model("AtariModel", AtariModel)
-
-    def gen_policy(i):
-        config = {
-            "model": {
-                "custom_model": "AtariModel",
-            },
-            "gamma": 0.99,
-        }
-        return (None, obs_space, act_space, config)
-    policies = {"policy_0": gen_policy(0)}
 
     parent_save_path = os.path.expanduser("~/ray_results_atari_baselines/"+env_name+"/")
     print(list(os.listdir(parent_save_path)))
@@ -76,6 +57,7 @@ if __name__ == "__main__":
         checkpoint_path = f"{train_path}/checkpoint_{checkpoint_num}/checkpoint-{checkpoint_num}"
 
         run_args = (f"python collect_reward.py {env_name} {train_path} {checkpoint_num}")
+        print(run_args)
         all_run_args.append(run_args.split())
 
         # RLAgent = Trainer(env=env_name, config=config)

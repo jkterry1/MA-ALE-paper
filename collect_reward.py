@@ -3,7 +3,7 @@ os.environ['SDL_AUDIODRIVER'] = 'dsp'
 os.environ['CUDA_VISIBLE_DEVICES'] = "-1"
 
 from train_atari import AtariModel, get_env, make_env_creator
-from pettingzooenv import ParallelPettingZooEnv
+from pettingzooenv import PettingZooEnv
 from ray.rllib.models import ModelCatalog
 from ray.tune.registry import register_env, register_trainable
 from ray import tune
@@ -18,6 +18,9 @@ import pickle
 
 from ray.rllib.rollout import rollout, keep_going, DefaultMapping
 from ray.rllib.agents.dqn import ApexTrainer
+
+from supersuit import clip_reward_v0, sticky_actions_v0, resize_v0
+from supersuit import frame_skip_v0, frame_stack_v1, agent_indicator_v0
 
 if __name__ == "__main__":
     methods = ["ADQN", "PPO", "RDQN"]
@@ -34,10 +37,20 @@ if __name__ == "__main__":
     Trainer = ApexTrainer
 
     game_env = get_env(env_name)
-    env_creator = make_env_creator(game_env, clip_rewards=False)
 
-    register_env(env_name, lambda config: ParallelPettingZooEnv(env_creator(config)))
-    test_env = ParallelPettingZooEnv(env_creator({}))
+    def env_creator(args):
+        env = game_env.env(obs_type='grayscale_image')
+        #env = clip_reward_v0(env, lower_bound=-1, upper_bound=1)
+        env = sticky_actions_v0(env, repeat_action_probability=0.25)
+        env = resize_v0(env, 84, 84)
+        #env = color_reduction_v0(env, mode='full')
+        env = frame_skip_v0(env, 4)
+        env = frame_stack_v1(env, 4)
+        env = agent_indicator_v0(env, type_only=False)
+        return env
+
+    register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
+    test_env = PettingZooEnv(env_creator({}))
     obs_space = test_env.observation_space
     act_space = test_env.action_space
 
@@ -58,71 +71,58 @@ if __name__ == "__main__":
         config = pickle.load(f)
 
     config['num_gpus']=0
-    config['num_workers']=0
-    # ray.init()
+    config['num_workers']=1
+    # # ray.init()
 
     results_path = os.path.join(data_path,"checkpoint_values")
     os.makedirs(results_path,exist_ok=True)
     result_path = os.path.join(results_path,f"checkpoint{checkpoint_num}.txt")
 
-    ray.init(num_cpus=0,num_gpus=0)
+    ray.init(num_gpus=0,num_cpus=2)#num_cpus=0,num_gpus=0)
 
     RLAgent = Trainer(env=env_name, config=config)
     RLAgent.restore(checkpoint_path)
 
-
-    env = from_parallel(env_creator(0))
-    observation = env.reset()
-    actions = env.rewards
-    rewardss = env.rewards
-    rewards = [0]
-    rewards2 = [0]
-    total_reward = 0
-    total_reward2 = 0
-    done = False
-    iteration = 0
-    policy_agent = 'first_0'
-    policy =  RLAgent.get_policy("policy_0")
-
     max_num_steps = 20000
+    env = (env_creator(0))
+    total_rewards = dict(zip(env.agents, [[] for _ in range(env.num_agents)]))
     num_steps = 0
-    num_episodes = 0
     while num_steps < max_num_steps:
+        observation = env.reset()
+        prev_actions = env.rewards
+        prev_rewards = env.rewards
+        rewards = dict(zip(env.agents, [[0] for _ in range(env.num_agents)]))
+        done = False
+        iteration = 0
+        policy_agent = 'first_0'
         while not done and num_steps < max_num_steps:
             for _ in env.agents:
                 #print(observation.shape)
                 #imsave("./"+str(iteration)+".png",observation[:,:,0])
-                # env.render()
+                #env.render()
                 observation = env.observe(env.agent_selection)
-                ####
                 if env.agent_selection == policy_agent:
-                    action, _, _ = policy.compute_single_action(observation, prev_action=actions[env.agent_selection], prev_reward=rewardss[env.agent_selection])
+                   action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=prev_actions[env.agent_selection], prev_reward=prev_rewards[env.agent_selection])
                 else:
-                    action = env.action_spaces[policy_agent].sample() #same action space for all agents
-                ####
-                #action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=actions[env.agent_selection] , prev_reward=rewardss[env.agent_selection])
-                ####
-                # print('Agent: {}, action: {}'.format(env.agent_selection,action))
-                actions[env.agent_selection] = action
+                   action = env.action_spaces[policy_agent].sample() #same action space for all agents
+                # action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=prev_actions[env.agent_selection], prev_reward=prev_rewards[env.agent_selection])
+
+                #print('Agent: {}, action: {}'.format(env.agent_selection,action))
+                prev_actions[env.agent_selection] = action
                 env.step(action, observe=False)
-                # print('reward: {}, done: {}'.format(env.rewards, env.dones))
-            rewardss = env.rewards
-            reward = env.rewards['first_0']
-            reward2 = env.rewards['second_0']
-            rewards.append(reward)
-            rewards2.append(env.rewards['second_0'])
+                #print('reward: {}, done: {}'.format(env.rewards, env.dones))
+            prev_rewards = env.rewards
+            for agent in env.agents:
+                rewards[agent].append(prev_rewards[agent])
             done = any(env.dones.values())
-            total_reward += reward
-            total_reward2 += reward2
             iteration += 1
             num_steps += 1
-            if num_steps % 1000 == 0:
-                print(f"{num_steps/max_num_steps}% done, average reward is: {sum(rewards)/(num_episodes+1)}")
-
-        done = False
-        observation = env.reset()
-        num_episodes += 1
+        for agent in env.agents:
+            total_rewards[agent].append(np.sum(rewards[agent]))
+        for agent in env.agents:
+            print("Agent: {}, Reward: {}".format(agent, np.mean(rewards[agent])))
+        print('Total reward: {}'.format(total_rewards))
 
     out_stat_fname = result_path
-    mean_rew = sum(rewards)/num_episodes
+    mean_rew = np.mean(total_rewards[policy_agent])
     open(out_stat_fname,'w').write(str(mean_rew))

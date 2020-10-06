@@ -37,7 +37,7 @@ class AtariModel(TFModelV2):
         super(AtariModel, self).__init__(obs_space, action_space, num_outputs, model_config,
                          name)
         inputs  = tf.keras.layers.Input(shape=(84,84,4), name='observations')
-        inputs2 = tf.keras.layers.Input(shape=(2,), name="agent_indicator") 
+        inputs2 = tf.keras.layers.Input(shape=(2,), name="agent_indicator")
         # Convolutions on the frames on the screen
         layer1 = tf.keras.layers.Conv2D(
                 32,
@@ -79,26 +79,26 @@ class AtariModel(TFModelV2):
     def forward(self, input_dict, state, seq_lens):
         model_out, self._value_out = self.base_model([input_dict["obs"][:,:,:,0:4], input_dict["obs"][:,0,0,4:6]])
         return model_out, state
-    
+
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
 
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
     # ADQN - Apex DQN
-    
+
     methods = ["ADQN", "PPO", "RDQN"]
-    
+
     assert len(sys.argv) == 5, "Input the learning method as the second argument"
     env_name = sys.argv[1].lower()
     method = sys.argv[2].upper()
-    method_folder = sys.argv[3]
-    checkpoint = sys.argv[4] 
+    method_path = sys.argv[3]
+    checkpoint = sys.argv[4]
     assert method in methods, "Method should be one of {}".format(methods)
-    
+
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
-    checkpoint_path = "../ray_results_atari/{}/{}/{}/checkpoint_{}/checkpoint-{}".format(env_name,method,method_folder,checkpoint,checkpoint)
+    checkpoint_path = "{}/checkpoint_{}/checkpoint-{}".format(method_path,checkpoint,checkpoint)
 
     if method == "RDQN":
         Trainer = DQNTrainer
@@ -136,13 +136,13 @@ if __name__ == "__main__":
         env = frame_stack_v1(env, 4)
         env = agent_indicator_v0(env, type_only=False)
         return env
-    
+
     register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
- 
+
     test_env = PettingZooEnv(env_creator({}))
     obs_space = test_env.observation_space
     act_space = test_env.action_space
-    
+
     ModelCatalog.register_custom_model("AtariModel", AtariModel)
     def gen_policy(i):
         config = {
@@ -153,7 +153,7 @@ if __name__ == "__main__":
         }
         return (None, obs_space, act_space, config)
     policies = {"policy_0": gen_policy(0)}
-    
+
     # for all methods
     policy_ids = list(policies.keys())
 
@@ -181,16 +181,16 @@ if __name__ == "__main__":
         policy_agent = 'first_0'
         while not done:
             for _ in env.agents:
-                #print(observation.shape) 
-                #imsave("./"+str(iteration)+".png",observation[:,:,0]) 
+                #print(observation.shape)
+                #imsave("./"+str(iteration)+".png",observation[:,:,0])
                 #env.render()
-                #if env.agent_selection == policy_agent:
-                #    observation = env.observe(policy_agent)
-                #    action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_reward=rewards[-1]) # prev_action=action_dict[agent_id]
-                #else:
-                #    action = env.action_spaces[policy_agent].sample() #same action space for all agents
                 observation = env.observe(env.agent_selection)
-                action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=prev_actions[env.agent_selection], prev_reward=prev_rewards[env.agent_selection])
+                if env.agent_selection == policy_agent:
+                   observation = env.observe(policy_agent)
+                   action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=prev_actions[env.agent_selection], prev_reward=prev_rewards[env.agent_selection])
+                else:
+                   action = env.action_spaces[policy_agent].sample() #same action space for all agents
+                # action, _, _ = RLAgent.get_policy("policy_0").compute_single_action(observation, prev_action=prev_actions[env.agent_selection], prev_reward=prev_rewards[env.agent_selection])
 
                 #print('Agent: {}, action: {}'.format(env.agent_selection,action))
                 prev_actions[env.agent_selection] = action
@@ -204,6 +204,6 @@ if __name__ == "__main__":
         for agent in env.agents:
             total_rewards[agent].append(np.sum(rewards[agent]))
     #env.close()
-    for agent in env.agents:
-        print("Agent: {}, Reward: {}".format(agent, np.mean(rewards[agent])))
-    print('Total reward: {}'.format(total_rewards))
+        for agent in env.agents:
+            print("Agent: {}, Reward: {}".format(agent, np.mean(rewards[agent])))
+        print('Total reward: {}'.format(total_rewards))
