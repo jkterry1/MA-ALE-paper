@@ -84,7 +84,7 @@ if __name__ == "__main__":
     policy_agent = 'first_0'
     policy =  RLAgent.get_policy("policy_0")
 
-    max_num_steps = 100000
+    max_num_steps = 50000
     num_steps = 0
     num_episodes = 0
     while num_steps < max_num_steps:
