@@ -52,7 +52,7 @@ if __name__ == "__main__":
     #open(csv_results_path,'w').write("checkpoint,score")
 
     all_run_args = []
-    for i in range(1,50+1):
+    for i in range(1,85+1):
         checkpoint_num = i*20*2
         checkpoint_path = f"{train_path}/checkpoint_{checkpoint_num}/checkpoint-{checkpoint_num}"
 

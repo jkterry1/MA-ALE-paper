@@ -83,7 +83,7 @@ if __name__ == "__main__":
     RLAgent = Trainer(env=env_name, config=config)
     RLAgent.restore(checkpoint_path)
 
-    max_num_steps = 20000
+    max_num_steps = 50000
     env = (env_creator(0))
     total_rewards = dict(zip(env.agents, [[] for _ in range(env.num_agents)]))
     num_steps = 0
@@ -117,6 +117,8 @@ if __name__ == "__main__":
             done = any(env.dones.values())
             iteration += 1
             num_steps += 1
+            if iteration > 10000:
+                break
         for agent in env.agents:
             total_rewards[agent].append(np.sum(rewards[agent]))
         for agent in env.agents:
