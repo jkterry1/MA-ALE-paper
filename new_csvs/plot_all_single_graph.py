@@ -93,8 +93,8 @@ for env in all_envs:
     data = df.to_numpy()
     #filtered = scipy.signal.savgol_filter(data[:, 1], int(len(data[:, 1])/110)+2, 5)
     filtered = data[:,1]
-    plt.plot(data[:, 0], filtered, label=env, linewidth=0.6, color='#0530ad', linestyle='-')
-    plt.plot(data[:, 0],rand_reward*np.ones_like(data[:, 0]), label=env, linewidth=0.6, color='#A0522D', linestyle='-')
+    line, = plt.plot(data[:, 0], filtered, label=env, linewidth=0.6, color='#0530ad', linestyle='-')
+    rand_line, = plt.plot(data[:, 0],rand_reward*np.ones_like(data[:, 0]), label=env, linewidth=0.6, color='#A0522D', linestyle='-')
     plt.xlabel('Steps', labelpad=1)
     plt.ylabel('Average Total Reward', labelpad=1)
     plt.title(all_env_names[env])
@@ -107,5 +107,7 @@ for env in all_envs:
     plt.margins(x=0)
     plot_ind += 1
 
+
+plt.figlegend([line, rand_line],['Trained Agent vs Random Agent', 'Random Agent vs Random Agent'], fontsize='x-large', loc='lower center', ncol=1, labelspacing=.2, columnspacing=.25, borderpad=.25, bbox_to_anchor=(0.68,0.06))
 plt.savefig("atari_results.pgf", bbox_inches = 'tight',pad_inches = .025)
 plt.savefig("atari_results.png", bbox_inches = 'tight',pad_inches = .025, dpi=600)
