@@ -25,8 +25,9 @@ all_envs = []
 
 for f in os.listdir('./'):
     if f.endswith('.csv'):
+        print(f)
         all_envs.append(f.split('.')[0])
-
+print(len(all_envs))
 
 def get_env_name(env_name):
     if env_name=='boxing':
@@ -84,13 +85,16 @@ all_envs = sorted(all_envs, key=str.lower)
 
 plot_ind = 1
 for env in all_envs:
+    print("plotted")
     plt.subplot(7,3,plot_ind)
+    rand_reward = float(open(env+"_random_rew.txt").read().strip())
     df = pd.read_csv(os.path.join(data_path, env+'.csv'))
     df = df[['timesteps_total', "reward"]]
     data = df.to_numpy()
     #filtered = scipy.signal.savgol_filter(data[:, 1], int(len(data[:, 1])/110)+2, 5)
     filtered = data[:,1]
     plt.plot(data[:, 0], filtered, label=env, linewidth=0.6, color='#0530ad', linestyle='-')
+    plt.plot(data[:, 0],rand_reward*np.ones_like(data[:, 0]), label=env, linewidth=0.6, color='#A0522D', linestyle='-')
     plt.xlabel('Steps', labelpad=1)
     plt.ylabel('Average Total Reward', labelpad=1)
     plt.title(all_env_names[env])
@@ -105,5 +109,3 @@ for env in all_envs:
 
 plt.savefig("atari_results.pgf", bbox_inches = 'tight',pad_inches = .025)
 plt.savefig("atari_results.png", bbox_inches = 'tight',pad_inches = .025, dpi=600)
-
-
