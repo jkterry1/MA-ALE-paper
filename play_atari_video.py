@@ -42,7 +42,7 @@ class AtariModel(TFModelV2):
         super(AtariModel, self).__init__(obs_space, action_space, num_outputs, model_config,
                          name)
         inputs  = tf.keras.layers.Input(shape=(84,84,4), name='observations')
-        inputs2 = tf.keras.layers.Input(shape=(2,), name="agent_indicator") 
+        inputs2 = tf.keras.layers.Input(shape=(2,), name="agent_indicator")
         # Convolutions on the frames on the screen
         layer1 = tf.keras.layers.Conv2D(
                 32,
@@ -84,7 +84,7 @@ class AtariModel(TFModelV2):
     def forward(self, input_dict, state, seq_lens):
         model_out, self._value_out = self.base_model([input_dict["obs"][:,:,:,0:4], input_dict["obs"][:,0,0,4:6]])
         return model_out, state
-    
+
     def value_function(self):
         return tf.reshape(self._value_out, [-1])
 
@@ -154,28 +154,28 @@ def get_trainer(method):
 if __name__ == "__main__":
     # RDQN - Rainbow DQN
     # ADQN - Apex DQN
-    
+
     methods = ["ADQN", "PPO", "RDQN"]
-    
+
     assert len(sys.argv) == 3, "Input the learning method as the second argument"
     env_name = sys.argv[1].lower()
     #method = sys.argv[2].upper()
     #method_folder = sys.argv[3]
-    checkpoint = sys.argv[2] 
-    method = "ADQN" 
+    checkpoint = sys.argv[2]
+    method = "ADQN"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+"/checkpoint_980/checkpoint-980"
     #checkpoint_path = "../ray_results_base/"+env_name+"/"+method.upper()+'/APEX_boxing_0_2020-08-26_19-03-06prr7aba9'+"/checkpoint_2430/checkpoint-2430"
     #checkpoint_path = "../ray_results_atari/{}/{}/{}/checkpoint_{}/checkpoint-{}".format(env_name,method,method_folder,checkpoint,checkpoint)
     folder_path = f"/home/ben/ray_results_atari_baselines/{env_name}/ADQN/"
-    
+
     subfolder = next(os.walk(folder_path))[1]
     if len(subfolder) > 1:
         raise TypeError(f"Multiple subfolders for {env_name} in {folder_path}")
 
     checkpoint_path = folder_path+subfolder[0]+"/checkpoint_{}/checkpoint-{}".format(checkpoint, checkpoint)
-    
+
     Trainer = get_trainer(method)
-    game_env = get_env(env_name) 
+    game_env = get_env(env_name)
 
     def env_creator(args):
         env = game_env.env(obs_type='grayscale_image')
@@ -187,13 +187,13 @@ if __name__ == "__main__":
         env = frame_stack_v1(env, 4)
         env = agent_indicator_v0(env, type_only=False)
         return env
-    
+
     register_env(env_name, lambda config: PettingZooEnv(env_creator(config)))
- 
+
     test_env = PettingZooEnv(env_creator({}))
     obs_space = test_env.observation_space
     act_space = test_env.action_space
-    
+
     ModelCatalog.register_custom_model("AtariModel", AtariModel)
     def gen_policy(i):
         config = {
@@ -204,7 +204,7 @@ if __name__ == "__main__":
         }
         return (None, obs_space, act_space, config)
     policies = {"policy_0": gen_policy(0)}
-    
+
     # for all methods
     policy_ids = list(policies.keys())
 
@@ -234,8 +234,8 @@ if __name__ == "__main__":
         policy_agent = 'first_0'
         while not done:
             for _ in env.agents:
-                #print(observation.shape) 
-                #imsave("./"+str(iteration)+".png",observation[:,:,0]) 
+                #print(observation.shape)
+                #imsave("./"+str(iteration)+".png",observation[:,:,0])
                 imsave("./videos/"+env_name+"/"+str(iteration)+".png",env.env.env.env.env.env.env.env.env.ale.getScreenRGB())
                 #env.render()
                 if env.agent_selection == policy_agent:
@@ -262,10 +262,10 @@ if __name__ == "__main__":
         print("Agent: {}, Reward: {}".format(agent, np.mean(rewards[agent])))
     print('Total reward: {}'.format(total_rewards))
 
-    os.chdir(f"/home/luis/MA-ALE-paper/videos/{env_name}")
+    os.chdir(f"videos/{env_name}")
     #os.system(f"cd /home/luis/MA-ALE-paper/videos/{env_name}")
-    os.system(f"ffmpeg -framerate 5 -i %d5.png -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p {env_name}.mp4")
-    os.system(f"ffmpeg -i {env_name}.mp4 -f gif {env_name}.gif")
+    os.system(f"ffmpeg -y -framerate 5 -i %d5.png -c:v libx264 -profile:v high -crf 20 -pix_fmt yuv420p {env_name}.mp4")
+    os.system(f"ffmpeg -y -i {env_name}.mp4 -f gif {env_name}.gif")
     os.system("rm *.png")
     os.system(f"cp {env_name}.mp4 ../")
     os.system(f"cp {env_name}.gif ../")
