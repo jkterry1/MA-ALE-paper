@@ -57,10 +57,8 @@ def test_single_episode(env, _agent, generate_gif_callback=None):
     # loop until the episode is finished
     done = False
     while not done:
-        print(observation.shape)
         #print(_agent.agents)
         action = _agent.act("first_0", State.from_gym((observation.reshape((1, 84, 84),)), device="cpu", dtype=np.uint8))
-        print(action)
         observation, reward, done, info = env.step(action)
         returns += reward
         num_steps += 1
@@ -74,14 +72,12 @@ def test_independent(env, agent, frames):
         episode_return, ep_steps = test_single_episode(env, agent)
         returns.append(episode_return)
         num_steps += ep_steps
+        print(num_steps)
         # self._log_test_episode(episode, episode_return)
     return returns
 
 def returns_agent(returns, agent):
-    if agent not in returns[0]:
-        return np.float("nan")
-    agent_1_returns = [ret[agent] for ret in returns]
-    return np.mean(agent_1_returns)
+    return np.mean(returns)
 
 def main():
     parser = argparse.ArgumentParser(description="Run an multiagent Atari benchmark.")
