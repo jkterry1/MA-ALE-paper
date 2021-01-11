@@ -25,15 +25,19 @@ class TestRandom:
 
 def generate_episode_gifs(env, _agent, max_frames, dir):
     # initialize the episode
-    state = env.reset()
+    observation = env.reset()
     frame_idx = 0
     prev_obs = None
 
     # loop until the episode is finished
-    for agent in env.agent_iter():
-        action = _agent.act(agent, state)
-        state = env.step(action)
-        obs = env._env.env.env.env.env.aec_env.env.env.env.env.ale.getScreenRGB()
+    done = False
+    while not done:
+        #print(_agent.agents)
+        action = _agent.act("first_0", State.from_gym((observation.reshape((1, 84, 84),)), device="cpu", dtype=np.uint8))
+        observation, reward, done, info = env.step(action)
+        if reward != 0.0:
+            print(reward)
+        obs = env.render(mode='rgb_array')
         if not prev_obs or not np.equal(obs, prev_obs).all():
             im = Image.fromarray(obs)
             im.save(f"{dir}{str(frame_idx).zfill(4)}.png")
@@ -41,10 +45,6 @@ def generate_episode_gifs(env, _agent, max_frames, dir):
             frame_idx += 1
             if frame_idx >= max_frames:
                 break
-
-        if len(env._env.agents) == 1 and env._env.dones[env._env.agent_selection]:
-            print(returns)
-            break
 
 def test_single_episode(env, _agent, generate_gif_callback=None):
     # initialize the episode
@@ -77,6 +77,7 @@ def test_independent(env, agent, frames):
     return returns
 
 def returns_agent(returns, agent):
+    print(returns)
     return np.mean(returns)
 
 def main():
