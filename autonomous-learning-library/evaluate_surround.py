@@ -22,6 +22,7 @@ from pettingzoo.atari.base_atari_env import BaseAtariEnv, base_env_wrapper_fn, p
 from pettingzoo.utils.to_parallel import from_parallel
 from supersuit import resize_v0, frame_skip_v0
 
+np.set_printoptions(threshold=sys.maxsize, linewidth=500)
 color_map = {104: 110, 110: 167, 179: 85, 149: 157}
 #color_map = {110: 104, 167: 110, 85: 179, 157: 149}
 class ObservationWrapper(BaseWrapper):
@@ -39,7 +40,7 @@ class recolor_observations(ObservationWrapper):
         pass
 
     def _modify_observation(self, agent, observation):
-        new_obs = np.zeros_like(observation)
+        new_obs = np.copy(observation)
         mask1 = (observation == 104)
         mask2 = (observation == 110)
         mask3 = (observation == 179)
@@ -48,6 +49,18 @@ class recolor_observations(ObservationWrapper):
         new_obs[mask2] = 147
         new_obs[mask3] = 64
         new_obs[mask4] = 167
+        #print(new_obs[:,:,0])
+
+        # Create color map from obs1 to obs2 
+        color_map = {}
+        for row1, row2 in zip(observation[:,:,0], new_obs[:,:,0]):
+            for item1, item2 in zip(row1, row2):
+                if item1 in color_map:
+                    if color_map[item1] != item2:
+                        print("Divergent mapping")
+                else:
+                    color_map[item1] = item2
+        #print(color_map)
         return new_obs
 
 device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -152,7 +165,6 @@ def test_single_episode(env, _agent, generate_gif_callback=None):
     # initialize the episode
     observation, _, _, _ = env.reset()
     observation = env.reset()['observation'].cpu().numpy()
-    np.set_printoptions(threshold=sys.maxsize, linewidth=500)
     #print(observation)
     #obs = env._env.env.env.env.env.aec_env.env.env.env.ale.getScreenRGB()
     #print(obs[:,:,0])
@@ -167,6 +179,7 @@ def test_single_episode(env, _agent, generate_gif_callback=None):
         action = _agent.act("first_0", State.from_gym((observation.reshape((1, 84, 84),)), device=device, dtype=np.uint8))
         if not isinstance(action, int):
             action = action.cpu().numpy()[0]
+        print(action)
         state = env.step(action)
         reward = state['reward']
         obseration = state['observation'].cpu().numpy()
