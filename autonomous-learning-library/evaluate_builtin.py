@@ -64,6 +64,7 @@ def test_single_episode(env, _agent, generate_gif_callback=None, side="first_0")
     num_steps = 0
     frame_idx = 0
     prev_obs = None
+    print(side)
 
     # loop until the episode is finished
     done = False
@@ -76,11 +77,11 @@ def test_single_episode(env, _agent, generate_gif_callback=None, side="first_0")
 
     return returns, num_steps
 
-def test_independent(env, agent, frames):
+def test_independent(env, agent, frames, side="first_0"):
     returns = []
     num_steps = 0
     while num_steps < frames:
-        episode_return, ep_steps = test_single_episode(env, agent)
+        episode_return, ep_steps = test_single_episode(env, agent, side=side)
         returns.append(episode_return)
         num_steps += ep_steps
         print(num_steps)
@@ -140,9 +141,9 @@ def main():
     agent = preset.test_agent()
 
     if not args.generate_gif:
-        returns = test_independent(env, agent, args.frames)
+        returns = test_independent(env, agent, args.frames, side=args.agent)
         agent_names = ["first_0", "second_0", "third_0", "fourth_0"]
-        with open("./outfiles/" + args.checkpoint + ".txt",'w') as out:
+        with open("./outfiles/" + args.checkpoint + "_" + args.agent + ".txt",'w') as out:
             out.write(f"Environment: {args.env}\n")
             out.write(f"Checkpoint Name: {args.checkpoint}\n")
             out.write(f"Agent: {args.agent}\n")
@@ -158,7 +159,7 @@ def main():
         folder = f"frames/{name}/"
         os.makedirs(folder,exist_ok=True)
         os.makedirs("gifs",exist_ok=True)
-        generate_episode_gifs(env, agent, args.frames, folder)
+        generate_episode_gifs(env, agent, args.frames, folder, side=args.agent)
 
         ffmpeg_command = [
             "ffmpeg",
