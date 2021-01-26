@@ -11,7 +11,17 @@ import numpy as np
 import random
 import subprocess
 import gym
+import supersuit
+from supersuit import color_reduction_v0, frame_stack_v1, max_observation_v0, frame_skip_v0, resize_v0
 from gym.wrappers import AtariPreprocessing
+import gym
+from all.environments.atari_wrappers import (
+    NoopResetEnv,
+    MaxAndSkipEnv,
+    FireResetEnv,
+    WarpFrame,
+    LifeLostEnv,
+)
 
 from PIL import Image
 
@@ -24,7 +34,7 @@ class TestRandom:
         return random.randint(0,17)
 
 
-def generate_episode_gifs(env, _agent, max_frames, dir):
+def generate_episode_gifs(env, _agent, max_frames, save_dir, side="first_0"):
     # initialize the episode
     observation = env.reset()
     frame_idx = 0
@@ -34,20 +44,20 @@ def generate_episode_gifs(env, _agent, max_frames, dir):
     done = False
     while not done:
         #print(_agent.agents)
-        action = _agent.act("first_0", State.from_gym((observation.reshape((1, 84, 84),)), device=device, dtype=np.uint8))
+        action = _agent.act(side, State.from_gym((observation.reshape((1, 84, 84),)), device=device, dtype=np.uint8))
         observation, reward, done, info = env.step(action)
         if reward != 0.0:
             print(reward)
         obs = env.render(mode='rgb_array')
         if not prev_obs or not np.equal(obs, prev_obs).all():
             im = Image.fromarray(obs)
-            im.save(f"{dir}{str(frame_idx).zfill(4)}.png")
+            im.save(f"{save_dir}{str(frame_idx).zfill(4)}.png")
 
             frame_idx += 1
             if frame_idx >= max_frames:
                 break
 
-def test_single_episode(env, _agent, generate_gif_callback=None):
+def test_single_episode(env, _agent, generate_gif_callback=None, side="first_0"):
     # initialize the episode
     observation = env.reset()
     returns = 0
@@ -59,7 +69,7 @@ def test_single_episode(env, _agent, generate_gif_callback=None):
     done = False
     while not done:
         #print(_agent.agents)
-        action = _agent.act("first_0", State.from_gym((observation.reshape((1, 84, 84),)), device=device, dtype=np.uint8))
+        action = _agent.act(side, State.from_gym((observation.reshape((1, 84, 84),)), device=device, dtype=np.uint8))
         observation, reward, done, info = env.step(action)
         returns += reward
         num_steps += 1
@@ -113,8 +123,18 @@ def main():
     frame_skip = 1 if args.generate_gif else 4
     #env = MultiAgentAtariEnv(args.env, device=args.device, frame_skip=frame_skip)
     env = gym.make(args.env, full_action_space=True)
-    env = AtariPreprocessing(env, frame_skip=frame_skip)
+    env = NoopResetEnv(env, noop_max=30)
+    env = MaxAndSkipEnv(env)
+    if "FIRE" in env.unwrapped.get_action_meanings():
+        env = FireResetEnv(env)
+    env = WarpFrame(env)
+    env = LifeLostEnv(env)
+
+    
+    # allow agent to see everything on the screen despite Atari's flickering screen problem
+    #env = supersuit.frame_stack_v1(env, 4)
     env.reset()
+
     # base_builder = getattr(atari, agent_name)()
     preset = torch.load(os.path.join("./checkpoints/latest_ind_atari_checkpoints/" + args.checkpoint + "_final_checkpoint.th"))
     agent = preset.test_agent()
@@ -134,7 +154,7 @@ def main():
         # preset = independent({agent:base_builder for agent in env.agents}).env(env).hyperparameters(replay_buffer_size=350000,replay_start_size=100)
         # agent = preset.agent()
     else:
-        name = f"{args.env}_{args.agent}_{args.vs_random}_{args.agent_random}"
+        name = f"{args.env}_{args.agent}"
         folder = f"frames/{name}/"
         os.makedirs(folder,exist_ok=True)
         os.makedirs("gifs",exist_ok=True)

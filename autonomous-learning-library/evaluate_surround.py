@@ -135,23 +135,16 @@ class TestRandom:
 
 def generate_episode_gifs(env, _agent, max_frames, dir):
     # initialize the episode
-    observation = env.reset()['observation'].cpu().numpy()
-    print(observation)
+    state = env.reset()
     frame_idx = 0
     prev_obs = None
 
     # loop until the episode is finished
     done = False
     while not done:
-        action = _agent.act("first_0", State.from_gym((observation.reshape((1, 84, 84),)), device=device, dtype=np.uint8))
-        if not isinstance(action, int):
-            action = action.cpu().numpy()[0]
+        action = _agent.act("second_0", state)
         state = env.step(action)
-        reward = state['reward']
-        obseration = state['observation'].cpu().numpy()
         done = state['done']
-        if reward != 0.0:
-            print(reward)
         obs = env._env.env.env.env.env.env.aec_env.env.env.env.ale.getScreenRGB()
         if not prev_obs or not np.equal(obs, prev_obs).all():
             im = Image.fromarray(obs)
@@ -163,11 +156,10 @@ def generate_episode_gifs(env, _agent, max_frames, dir):
 
 def test_single_episode(env, _agent, generate_gif_callback=None):
     # initialize the episode
-    observation, _, _, _ = env.reset()
-    observation = env.reset()['observation'].cpu().numpy()
     #print(observation)
     #obs = env._env.env.env.env.env.aec_env.env.env.env.ale.getScreenRGB()
     #print(obs[:,:,0])
+    state = env.reset()
     returns = 0
     num_steps = 0
     frame_idx = 0
@@ -176,15 +168,10 @@ def test_single_episode(env, _agent, generate_gif_callback=None):
     # loop until the episode is finished
     done = False
     while not done:
-        action = _agent.act("first_0", State.from_gym((observation.reshape((1, 84, 84),)), device=device, dtype=np.uint8))
-        if not isinstance(action, int):
-            action = action.cpu().numpy()[0]
-        print(action)
+        action = _agent.act("second_0", state)
         state = env.step(action)
-        reward = state['reward']
-        obseration = state['observation'].cpu().numpy()
+        returns += state.reward
         done = state['done']
-        returns += reward
         num_steps += 1
 
     return returns, num_steps
